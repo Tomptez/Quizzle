@@ -1,0 +1,338 @@
+{% extends "quiz/quiz_base.html" %}
+{% block head %}
+  <title>{{ quiz.name }} - Take Quiz</title>
+{% endblock %}
+
+{% block content %}
+
+<!-- Name input Modal-->
+<div id="participantModal" class="modal-overlay" style="display: flex;">
+    <div class="modal-content">
+        <h3>Welcome! What's your name?</h3>
+        <input type="text" id="participantNameInput" class="form-control" placeholder="Enter your name"/>
+        <button id="startQuizBtn" class="btn btn-primary mt-3">Start Quiz</button>
+    </div>
+</div>
+
+<div class="quiz-container" style="display: none;" id="quizContainer">
+    <h1 id="quizName"></h1>
+    
+    <div class="progress-bar-section">
+        <div class="d-flex justify-content-between mb-2">
+            <span id="progressText">Question 1 of 0</span>
+            <span id="timer" class="timer"></span>
+        </div>
+        <div class="progress">
+            <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <div id="questionsContainer"></div>
+
+    <div class="d-flex justify-content-between mt-4">
+        <button id="prevBtn" class="btn btn-secondary" onclick="previousQuestion()">Previous</button>
+        <button id="nextBtn" class="btn btn-primary" onclick="nextQuestion()">Next</button>
+    </div>
+</div>
+
+<script>
+    const quizData = {{ quiz|safe }};
+    const attemptId = {{ attempt_id }};
+    const publicId = "{{ public_quizid }}";
+    
+    let currentQuestionIndex = 0;
+    let userAnswers = {};
+    let timeLeft = {};
+    let timerInterval = null;
+
+    async function startQuiz() {
+        const participantName = document.getElementById('participantNameInput').value.trim() || 'anonymous';
+        
+        try {
+            const response = await fetch('/quiz/api/save-participant-name', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': "{{ csrf_token }}"
+                },
+                body: JSON.stringify({
+                    attempt_id: attemptId,
+                    participant_name: participantName
+                })
+            });
+            
+            if (response.ok) {
+                document.getElementById('participantModal').style.display = 'none';
+                document.getElementById('quizContainer').style.display = 'block';
+                initializeQuiz();
+            } else {
+                alert('Failed to save your name. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error starting quiz');
+        }
+    }
+
+    document.getElementById('startQuizBtn').addEventListener('click', startQuiz);
+    document.getElementById('participantNameInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            startQuiz();
+        }
+    });
+    let quizStarted = false;
+
+    async function startQuiz() {
+        const participantName = document.getElementById('participantNameInput').value.trim();
+        if (!participantName) {
+            alert('Please enter your name to start the quiz');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/quiz/api/save-participant-name', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': "{{ csrf_token }}"
+                },
+                body: JSON.stringify({
+                    attempt_id: attemptId,
+                    participant_name: participantName
+                })
+            });
+            
+            if (response.ok) {
+                quizStarted = true;
+                document.getElementById('participantModal').style.display = 'none';
+                document.getElementById('quizContainer').style.display = 'block';
+                initializeQuiz();
+            } else {
+                alert('Failed to save your name. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error starting quiz');
+        }
+    }
+
+    document.getElementById('startQuizBtn').addEventListener('click', startQuiz);
+    document.getElementById('participantNameInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            startQuiz();
+        }
+    });
+
+    function initializeQuiz() {
+        document.getElementById('quizName').textContent = quizData.name;
+        renderQuestion();
+        updateProgress();
+        
+        if (quizData.timelimit_active) {
+            document.getElementById('prevBtn').style.display = 'none';
+            startTimers();
+        }
+    }
+
+    function renderQuestion() {
+      const container = document.getElementById('questionsContainer');
+      container.innerHTML = '';
+      
+      const question = quizData.questions[currentQuestionIndex];
+      const div = document.createElement('div');
+      div.className = 'question-display active';
+      
+      let answersHtml = question.answers.map((answer, index) => {
+          const isSelected = userAnswers[question.id] === answer.id;
+          return `
+              <button class="answer-button ${isSelected ? 'selected' : ''}" 
+                  data-answer-id="${answer.id}">
+                  ${index + 1}. ${answer.text}
+              </button>
+          `;
+      }).join('');
+      
+      div.innerHTML = `
+          <h3>${question.text}</h3>
+          <div class="mt-3 answers-container">
+              ${answersHtml}
+          </div>
+      `;
+      
+      container.appendChild(div);
+      
+      const buttons = div.querySelectorAll('.answer-button');
+      buttons.forEach(button => {
+          button.addEventListener('click', (e) => {
+              buttons.forEach(btn => btn.classList.remove('selected'));
+              button.classList.add('selected');
+              userAnswers[question.id] = parseInt(button.dataset.answerId);
+          });
+      });
+      
+    updateButtonStates();
+    }
+
+    function updateProgress() {
+        const total = quizData.questions.length;
+        const current = currentQuestionIndex + 1;
+        document.getElementById('progressText').textContent = `Question ${current} of ${total}`;
+        document.getElementById('progressBar').style.width = `${(current / total) * 100}%`;
+    }
+
+    function updateButtonStates() {
+        const isFirst = currentQuestionIndex === 0;
+        
+        document.getElementById('prevBtn').disabled = isFirst;
+    }
+
+    async function previousQuestion() {
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            renderQuestion();
+            updateProgress();
+            if (quizData.timelimit_active) {
+                startTimers();
+            }
+        }
+    }
+
+    async function nextQuestion() {
+        const currentQuestion = quizData.questions[currentQuestionIndex];
+        const selectedAnswer = userAnswers[currentQuestion.id];
+        
+        await saveAnswer(currentQuestion.id, selectedAnswer);
+        
+        if (currentQuestionIndex === quizData.questions.length - 1) {
+            completeQuiz();
+        } else if (currentQuestionIndex < quizData.questions.length - 1) {
+            currentQuestionIndex++;
+            renderQuestion();
+            updateProgress();
+            if (quizData.timelimit_active) {
+                startTimers();
+            }
+        }
+    }
+
+    function startTimers() {
+        const question = quizData.questions[currentQuestionIndex];
+        if (!timeLeft[question.id]) {
+            timeLeft[question.id] = question.timelimit || quizData.default_timelimit;
+        }
+        
+        if (timerInterval) clearInterval(timerInterval);
+        
+        timerInterval = setInterval(() => {
+            timeLeft[question.id]--;
+            document.getElementById('timer').textContent = `Time: ${Math.max(0, timeLeft[question.id])}s`;
+            
+            if (timeLeft[question.id] <= 0) {
+                clearInterval(timerInterval);
+                const isLastQuestion = currentQuestionIndex === quizData.questions.length - 1;
+                
+                if (isLastQuestion) {
+                    // Submit on last question
+                    const currentQuestion = quizData.questions[currentQuestionIndex];
+                    const selectedAnswer = userAnswers[currentQuestion.id];
+                    saveAnswer(currentQuestion.id, selectedAnswer).then(() => {
+                        completeQuiz();
+                    });
+                } else if (currentQuestionIndex < quizData.questions.length - 1) {
+                    // Next question when time runs out
+                    currentQuestionIndex++;
+                    renderQuestion();
+                    updateProgress();
+                    startTimers();
+                }
+            }
+        }, 1000);
+    }
+
+    async function saveAnswer(questionId, answerId) {
+        try {
+            const response = await fetch('/quiz/api/save-answer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': "{{ csrf_token }}"
+                },
+                body: JSON.stringify({
+                    attempt_id: attemptId,
+                    question_id: questionId,
+                    answer_id: answerId || null
+                })
+            });
+            
+            if (!response.ok) {
+                const data = await response.json();
+                alert('Error saving answer: ' + (data.message || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error saving answer:', error);
+            alert('Error saving answer');
+        }
+    }
+
+    async function completeQuiz() {
+        try {
+            const response = await fetch(`/take/${publicId}/submit/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': "{{ csrf_token }}"
+                },
+                body: JSON.stringify({
+                    attempt_id: attemptId,
+                    answers: []
+                })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                }
+            } else {
+                alert('Error completing quiz');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    async function submitQuiz() {
+        const answers = Object.entries(userAnswers).map(([questionId, answerId]) => ({
+            question_id: parseInt(questionId),
+            answer_id: answerId
+        }));
+        
+        try {
+            const response = await fetch(`/take/${publicId}/submit/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': "{{ csrf_token }}"
+                },
+                body: JSON.stringify({
+                    attempt_id: attemptId,
+                    answers: answers
+                })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                }
+            } else {
+                alert('Error submitting quiz');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error submitting quiz');
+        }
+    }
+</script>
+
+{% endblock %}

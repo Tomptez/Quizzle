@@ -1,0 +1,585 @@
+{% extends 'quiz/layout.html' %}
+{% load static %}
+
+{% block head %}
+  <link href="{% static 'quiz/css/quiz_settings.css' %}" rel="stylesheet">
+  <title>Quiz Settings - {{ quiz.name }}</title>
+{% endblock %}
+
+{% block content %}
+
+  <div id="quiz-container" class="container container-80" data-quiz-id="1">
+    <div class="row">
+    <div id="left" class="col col-8 px-0">
+      <h2 id="h2-quiz-name"></h2>
+      <i> Your Quizname</i>
+    <div class="page-bar d-flex">
+      <button id="add-page" class="circle-btn circle-btn-sm mx-1" style="background-color: rgb(255, 188, 73);">
+        <i class="bi bi-plus"></i>
+      </button>
+      <button id="delete-question" class="btn rounded-pill btn-warning pill-button" onclick="deleteQuestion(this)">Delete Question</button>
+    </div>
+      <div id="input-container" class="col col-6 my-1">
+
+        <!-- Inserted by Javascript -->
+      </div>
+    </div>
+    <!-- Settings -->
+    <div id="right" class="col col-4 my-3">
+      <div class="card shadow-sm">
+        <div class="card-header bg-gradient text-white">
+          <h5 class="mb-0">Settings</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-4">
+            <label for="quiznameInput" class="form-label fw-semibold">Quiz name</label>
+            <input type="text" class="form-control form-control-lg rounded-3" id="quiznameInput" data-quiz-id=${data.public_id} oninput="saveQuizName(this);" value="hi" placeholder="Enter quiz name">
+          </div>
+          <div class="border-top pt-4 pb-4">
+            <h6 class="mb-3 fw-semibold">Scoreboard</h6>
+            <a href="/scoreboard/{{ public_id }}/" class="btn btn-sm btn-info">View Scoreboard</a>
+          </div>
+
+          <div class="border-top pt-4 pb-4">
+            <h6 class="mb-3 fw-semibold">Public Quiz Link</h6>
+            <div class="d-flex align-items-center gap-2">
+              <input type="text" class="form-control form-control-sm" id="publicQuizId" readonly>
+              <button class="btn btn-sm btn-outline-primary" onclick="copyPublicQuizLink()" title="Copy link to clipboard">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+          </div>
+          
+          <div class="border-top pt-4">
+            <h6 class="mb-3 fw-semibold">Time Limit Settings</h6>
+            <div class="form-check form-switch mb-3">
+              <input type="checkbox" class="form-check-input" id="activateTimeLimit" onchange="useTimerQuiz(this);" data-quiz-id=${data.public_id}>
+              <label class="form-check-label" for="activateTimeLimit">Activate time limit for quiz</label>
+            </div>
+            <div id="timeLimitContainer" class="mb-0">
+              <label for="defaultTimeLimit" class="form-label">Default time limit (seconds)</label>
+              <div class="input-group">
+                <input id="defaultTimeLimit" class="form-control" type="number" onchange="changeDefaultTime(this);" name="seconds" min="0" max="360" >
+                <span class="input-group-text">seconds</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col col-6">
+    </div>
+  </div>
+
+
+
+<!--    <script src="index.js"></script> -->
+    <script>
+
+      data = {{ quiz|safe }}
+      console.log(data)
+      
+      // Maximum Number of options
+      const maxOptions = 5;
+
+      async function apiCall({url, body, parseResponse = false}) {
+        let csrf_token = "{{ csrf_token }}"
+        try {
+          const response = await fetch(url, {
+            method: "POST",
+            headers: {
+              'Content-Type': 'application/json',
+              "X-CSRFToken": csrf_token,
+            },
+            body: JSON.stringify(body),
+            parseResponse: true
+          });
+          if (parseResponse) {
+            return response.ok ? await response.json() : null;
+          }
+          return response.ok;
+        } catch (error) {
+          console.error("API call failed:", error);
+          return null;
+        }
+      }
+
+      let timeout = null;
+      function saveAnswer(element) {
+        clearTimeout(timeout);
+
+        // Do this if there is no button press within 1.5 seconds
+        timeout = setTimeout(() => {
+          console.log("Question-Id", element.dataset.questionId, "Answer-id", element.dataset.answerId, "Text:", element.value);
+          let answer = data.questions.find(q => q.id == element.dataset.questionId).answers.find(a => a.id == element.dataset.answerId);
+          answer.text = element.value;
+
+            apiCall({
+                url: "/quiz/api/update-answer-text",
+                body: {
+                    answer_id: element.dataset.answerId,
+                    answer_text: element.value
+                }
+            }).then(success => {
+                if (!success) {
+                    console.error("Failed to update answer text");
+                } else {
+                    console.log("Answer saved");
+                }
+            });
+        }, 750)
+      }
+
+      function saveQuestionText(element) {
+        clearTimeout(timeout);
+
+        timeout = setTimeout(() => {
+            console.log("Question-id", element.dataset.questionId, "Text:", element.value);
+            let question = data.questions.find(q => q.id == element.dataset.questionId);
+            question.text = element.value;
+
+            apiCall({
+                url: "/quiz/api/update-question-text",
+                body: {
+                    question_id: element.dataset.questionId,
+                    question_text: element.value
+                }
+            }).then(success => {
+                if (!success) {
+                    console.error("Failed to update question text");
+                } else {
+                    console.log("Question saved");
+                }
+            });
+        }, 750)
+      }
+
+      function saveQuizName(element) {
+        clearTimeout(timeout);
+
+        timeout = setTimeout(() => {
+            data.name = element.value;
+
+            let admin_id = window.location.pathname.split("/").filter(Boolean).pop();
+            apiCall({
+                url: "/quiz/api/update-quiz-name",
+                body: {
+                    admin_id: admin_id,
+                    quiz_name: element.value
+                }
+            }).then(success => {
+                if (!success) {
+                    console.error("Failed to update quiz name");
+                } else {
+                    data.name = element.value;
+                    console.log("Quiz name saved");
+                }
+            });
+            document.getElementById("h2-quiz-name").innerText = element.value;
+        }, 750)
+      }
+
+
+      function initializePublicQuizLink() {
+        const publicQuizIdField = document.getElementById("publicQuizId");
+        const publicId = data.public_id;
+        const origin = window.location.origin;
+        const publicQuizLink = `${origin}/quiz/${publicId}`;
+        publicQuizIdField.value = publicQuizLink;
+      }
+
+      function copyPublicQuizLink() {
+        const publicQuizIdField = document.getElementById("publicQuizId");
+        publicQuizIdField.select();
+        document.execCommand("copy");
+      }
+
+      function saveCorrectInput(checkbox){
+        document.querySelectorAll("input.input-correct-checkbox").forEach(e => e.checked = false);
+        checkbox.checked = true;
+        data.questions.find(q => q.id == checkbox.dataset.questionId).answers.find(a => a.correct === true).correct = false;
+        let correctOption = data.questions.find(q => q.id == checkbox.dataset.questionId).answers.find(a => a.id == checkbox.dataset.answerId);
+        correctOption.correct = true;
+        console.log(checkbox.dataset.answerId, "was checked");
+        apiCall({
+          url: "/quiz/api/update-correct",
+          body: {answer_id: checkbox.dataset.answerId}
+        }).then(success => {
+          if (!success) {
+            console.error("Failed to update correct answer")
+          }
+        })
+      }
+
+      function getAnswer(answerId, questionId, answerText="", answerCorrect=false, placeholder="") {
+        placeholder = placeholder != "" ? placeholder : `placeholder="Option ${answerId}"`;
+        let checkedMark = answerCorrect ? "checked" : "";
+        let textValue = answerText === "" ? "" : `value="${answerText}"`;
+
+            return `<div class="d-flex align-items-center my-3 input-row">
+            <input type="checkbox" class="form-check-input form-check-correct rounded-circle mx-2 answer-option  ms-0" onchange="saveCorrectInput(this);" value="" ${checkedMark} data-answer-id=${answerId} data-quiz-id=${data.public_id} data-question-id=${questionId}>
+            <input type="text" data-answer-id=${answerId} data-quiz-id=${data.public_id} data-question-id=${questionId} class="answer form-control rounded-pill me-2" onkeyup="saveAnswer(this);" ${textValue} ${placeholder}>
+            <button class="circle-btn dash-btn" onclick="deleteAnswer(this)" data-answer-id=${answerId} data-question-id=${questionId}>
+              <i class="bi bi-dash"></i>
+            </button>
+          </div>`
+      }
+
+      async function deleteQuestion(element){
+        let questionwrapper = document.querySelector(".question-wrapper")
+        console.log("Delete Question with id", questionwrapper.dataset.questionId)
+        let questionId = questionwrapper.dataset.questionId;
+        let deletedQuestion = data.questions.find(q => q.id == questionId);
+        let deletedPosition = deletedQuestion.position;
+        
+        try {
+          const success = await apiCall({
+            url: "/quiz/api/delete-question",
+            body: {
+              question_id: questionId,
+              admin_id: window.location.pathname.split("/").filter(Boolean).pop(),
+            }
+          });
+          
+          if (success) {
+            data.questions = data.questions.filter(q => q.id != questionId);
+            data.questions.forEach(q => {
+              if (q.position > deletedPosition) {
+                q.position--;
+              }
+            });
+            data.questions.forEach(q => {
+              let button = document.querySelector(`button[data-question-id="${q.id}"]`);
+              if (button) {
+                button.innerHTML = q.position;
+                button.dataset.positionId = q.position;
+              }
+            });
+            document.querySelector(`button[data-question-id="${questionId}"]`).parentElement.remove();
+            
+            if (data.questions.length > 0) {
+              openQuestionPage(document.querySelector(".page-btn"));
+            } else {
+              document.querySelector("#input-container").innerHTML = "<p>No questions. Click + to add one.</p>";
+            }
+          }
+        } catch (error) {
+          console.error("Delete has failed:", error)
+          alert("Failed to delete question")
+        }
+      }
+
+      function deleteAnswer(element){
+        if (document.querySelectorAll(".input-row").length <= 1){
+          alert("You need to keep at least one option");
+          return;
+        }
+        let wasCorrect = element.parentElement.querySelector("input[type='checkbox']").checked;
+        let question = data.questions.find(q => q.id == element.dataset.questionId);
+        let answerId = element.dataset.answerId;
+        element.parentElement.remove();
+
+        if (wasCorrect){
+          saveCorrectInput(document.querySelector("input[type='checkbox'].answer-option"));
+        }
+
+        question.answers = question.answers.filter(a => a.id != answerId);
+        document.querySelector('#add-input').style.display = '';
+
+        apiCall({
+          url: "/quiz/api/delete-answer",
+          body: {answer_id: answerId}
+        }).then(success => {
+          if (!success) {
+            console.error("Failed to delete answer")
+          }
+        })
+      }
+
+      function useTimerQuiz(checkbox) {
+        console.log("Quiz time limit active:", checkbox.checked);
+        document.getElementById("defaultTimeLimit").disabled = !checkbox.checked;
+        let admin_id = window.location.pathname.split("/").filter(Boolean).pop();
+        apiCall({
+          url: "/quiz/api/update-quiz-time-limit",
+          body: {
+            admin_id: admin_id,
+            timelimit_active: checkbox.checked
+          }
+        }).then(success => {
+          if (!success){
+            console.error("Failed to update quiz time limit active");
+          }
+          else {
+            data.timelimit_active = checkbox.checked;
+            let questionTimeLimitContainers = document.querySelectorAll(".question-timelimit, .question-timelimit + span");
+            questionTimeLimitContainers.forEach(container => container.style.display = checkbox.checked ? "" : "none");
+          }
+        });
+      }
+
+      function changeDefaultTime(input) {
+        console.log("Change default timeout:", input.value);
+        let admin_id = window.location.pathname.split("/").filter(Boolean).pop();
+        data.default_timelimit = parseInt(input.value);
+        apiCall({
+          url: "/quiz/api/update-quiz-time-limit",
+          body: {
+            admin_id: admin_id,
+            default_timelimit: parseInt(input.value)
+          }
+        }).then(success => {
+          if (!success) console.error("Failed to update quiz default time limit");
+        });
+      }
+
+      function changeQuestionTimeLimit(input) {
+        console.log("Question time limit:", input.value);
+        let question_id = input.dataset.questionId;
+        let question = data.questions.find(q => q.id == question_id);
+        question.timelimit = parseInt(input.value);
+        apiCall({
+          url: "/quiz/api/update-question-time-limit",
+          body: {
+            question_id: question_id,
+            timelimit: parseInt(input.value)
+          }
+        }).then(success => {
+          if (!success) console.error("Failed to update question time limit");
+        });
+      }
+
+
+      function getQuestionPage(question) {
+        if (question.text.length == 0) {
+          questionText = `Question ${question.id}`
+        }
+        else {
+          questionText = question.text;
+        }
+        let inputAnswers = ""
+
+        question.answers.forEach(answer => {
+          let placeholder = "";
+          
+          if (answer.text === "") {
+            placeholder = `placeholder="Option ${answer.id}"`;
+          }
+            inputAnswers += getAnswer(answer.id, question.id, answer.text, answer.correct, placeholder);
+          });
+        return `
+        <div class="question-wrapper my-3" data-question-id=${question.id}>
+          <label for="formQuestionText" class="form-label fw-semibold">Question:</label>
+          <input class="form-control rounded-3" data-question-id=${question.id} id="formQuestionText" oninput="saveQuestionText(this);" value="${questionText}">
+          <div class="d-flex align-items-center gap-3 mt-2 flex-row-reverse" >
+            <div class="input-group input-group-sm" style="width: 120px;">
+            <input type="number" class="form-control form-control-sm question-timelimit" id="seconds" name="seconds" min="0" max="360" value="${question.timelimit !== null ? question.timelimit : data.default_timelimit}" data-question-id=${question.id} onchange="changeQuestionTimeLimit(this);" oninput="changeQuestionTimeLimit(this);" ${data.timelimit_active ? "" : 'style="display: none;"'}>  
+            <span class="input-group-text question-timelimit" ${data.timelimit_active ? "" : 'style="display: none;"'}>sec</span>
+            </div>
+          </div>
+        </div>
+        <div class="my-4">
+          ${inputAnswers}
+        </div>
+        <button id="add-input" class="circle-btn">
+          <i class="bi bi-plus"></i>
+        </button>`
+      }
+
+      function setupQuestionPage(question){
+        document.querySelector("#input-container").innerHTML = getQuestionPage(question);
+        let pageNumber = question.id;
+        setupAddAnswerButton(pageNumber);
+        if (question.answers.length >= maxOptions){
+          document.querySelector("#add-input").style.display = "None";
+        }
+      }
+
+
+      async function saveNewPosition(q1, q2){
+        console.log(`SaveNewPosition(${q1.id}, ${q2.id})`);
+        let admin_id = window.location.pathname.split("/").filter(Boolean).pop();
+        
+        try {
+          const success = await apiCall({
+            url: "/quiz/api/change-question-order",
+            body: {
+              question_id_1: q1.id,
+              question_id_2: q2.id,
+              admin_id: admin_id,
+            }
+          });
+          if (success) {
+            [q1.position, q2.position] = [q2.position, q1.position];
+            console.log("Saving position swap complete")
+          }
+        } catch (error) {
+          console.error("Failed to save position:", error)
+        }
+      }
+
+      async function move(moveButton) {
+        console.log(`Move ${moveButton.dataset.questionId} to the ${moveButton.dataset.direction}`);
+        let question = data.questions.find(q => q.id == moveButton.dataset.questionId);
+        let currentPosition = question.position;
+        if (moveButton.dataset.direction == "left" && question.position > 1){
+
+          let prev = moveButton.parentElement.previousSibling;
+          prev.firstElementChild.innerHTML = currentPosition;
+
+          let prevq = data.questions.find(q => q.position == currentPosition -1);
+          await saveNewPosition(question, prevq);
+          
+          moveButton.parentElement.querySelector(".page-btn").innerHTML = currentPosition - 1;
+          moveButton.parentElement.insertAdjacentElement("afterend", prev);
+        }
+        else if (moveButton.dataset.direction == "right" && question.position < document.querySelectorAll(".page-btn").length){
+          
+          let next = moveButton.parentElement.nextSibling;
+          next.firstElementChild.innerHTML = currentPosition;
+
+          let nextq = data.questions.find(q => q.position == currentPosition + 1);
+          await saveNewPosition(question, nextq);
+
+          moveButton.parentElement.querySelector(".page-btn").innerHTML = currentPosition + 1 ;
+          moveButton.parentElement.insertAdjacentElement("beforebegin", next);
+        }
+        openQuestionPage(moveButton.parentElement.querySelector(".page-btn"));
+      }
+      function clearMarkers(){
+        document.querySelectorAll(".btn-move").forEach(el => el.remove());
+        document.querySelectorAll(".page-btn").forEach(el => el.classList.remove("active"));
+      }
+
+      function openQuestionPage(pageButton){
+        let question = data.questions.find(q => q.id == pageButton.dataset.questionId)
+
+        clearMarkers();
+        if (question.position > 1){
+          let btnBefore = `<button data-question-id=${question.id} data-direction="left" class="btn-move circle-btn circle-btn-sm marked" onclick="move(this)"><</button>`
+          pageButton.insertAdjacentHTML("beforebegin", btnBefore);
+        }
+        if (question.position < document.querySelectorAll(".page-btn").length) {
+          let btnNext = `<button data-question-id=${question.id} data-direction="right" class="btn-move circle-btn circle-btn-sm marked" onclick="move(this)">></button>`
+          pageButton.insertAdjacentHTML("afterEnd", btnNext);
+        }
+        
+        pageButton.classList.add("active");
+        setupQuestionPage(question);
+      }
+
+      function getPageNumberButton(question) {
+       let btn =  `<div data-position-id="${question.position}" data-question-id="${question.id}" class="pg-btn-container d-flex"><button data-position-id="${question.position}" data-question-id="${question.id}" class="page-btn circle-btn circle-btn-sm mx-1" onclick="openQuestionPage(this);">
+          ${question.position}
+        </button></div>`
+        return btn;
+      }
+
+    async function addNewQuestion() {
+      try {
+        const response = await apiCall({
+          url: "/quiz/api/add-question",
+          body: {
+            admin_id: window.location.pathname.split("/").filter(Boolean).pop(),
+          },
+          parseResponse: true
+        });
+        
+        if (response) {
+          console.log("Question created with id", response.question.id);
+          return response.question;
+        } else {
+          console.error("Failed to create question");
+          return null;
+        }
+      } catch (error) {
+        console.error("fail", error);
+        return -1
+      }
+    }
+
+      function setupNewPageButton() {
+        document.querySelector("#add-page").addEventListener("click", async e => {
+          let pageNumber = document.querySelectorAll(".page-btn").length + 1;
+          
+          let newQuestion = await addNewQuestion();
+
+          if (newQuestion != null) {
+            console.log("New question added with id", newQuestion.id);
+            data.questions.push(newQuestion);
+            let newPageButton = getPageNumberButton(newQuestion);
+            document.querySelector("#add-page").insertAdjacentHTML("beforebegin", newPageButton);
+
+            console.log(document.querySelector("#add-page").previousSibling.querySelector(".page-btn"))
+            openQuestionPage(document.querySelector("#add-page").previousSibling.querySelector(".page-btn"));
+          }
+          else {
+            console.log("Couldn't create new Question. Server error")
+          }
+        });
+      }
+
+      async function addNewAnswer(answer, questionId) {
+        console.log(answer)
+        try {
+          const result = await apiCall({
+            url: "/quiz/api/add-answer",
+            body: {
+              question_id: questionId,
+              text: answer.text,
+              correct: answer.correct
+            },
+            parseResponse: true
+          });
+          if (result) {
+            console.log("success")
+            return result.answer_id
+          } else {
+            console.error("fail")
+            return -1
+          }
+        } catch (error) {
+          console.error("error", error)
+          return -1
+        }
+      }
+      function setupAddAnswerButton(questionId) {
+        document.querySelector("#add-input").addEventListener("click", async e => {
+          console.log("Add option was clicked")
+          newOption = {text: "", correct: false}
+          let newId = await addNewAnswer(newOption, questionId);
+          if (newId != -1) {
+
+            let button = document.querySelector("#add-input");
+            let optionLength = document.querySelectorAll(".input-row").length;
+    
+            let question = data.questions.find(q => q.id == questionId);
+            if (optionLength < 6) {
+              button.insertAdjacentHTML("beforebegin", getAnswer(newId, questionId));
+              newOption = {id: newId, text: "", correct: false}
+              question.answers.push(newOption);
+            }
+            if (optionLength == maxOptions-1) {
+              button.style.display = "None";
+            }
+          }
+          else {
+            console.log("Couldn't create new Answer. Server error")
+          }
+      })
+    }
+    
+    // Setup Page
+    setupNewPageButton();
+    data.questions.forEach(q => {
+      document.querySelector("#add-page").insertAdjacentHTML("beforebegin", getPageNumberButton(q));
+      quiznameInput.value = data.name;
+    })
+    openQuestionPage(document.querySelector(".page-btn"));
+    document.getElementById("h2-quiz-name").innerText = data.name;
+    document.getElementById("activateTimeLimit").checked = data.timelimit_active;
+    document.getElementById("defaultTimeLimit").disabled = !data.timelimit_active;
+    document.getElementById("defaultTimeLimit").value = data.default_timelimit;
+    initializePublicQuizLink();
+    </script>
+{% endblock %}

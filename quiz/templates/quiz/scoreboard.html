@@ -1,0 +1,42 @@
+{% extends 'quiz/layout.html' %}
+{% load static %}
+
+{% block head %}
+  <link href="{% static 'quiz/css/scoreboard.css' %}" rel="stylesheet">
+  <title>Scoreboard - {{ quiz.name }}</title>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="header">
+        <h1 id="title-scoreboard">{{ quiz.name }}</h1>
+    </div>
+    
+    <div class="scoreboard">
+        <table>
+            <thead>
+                <tr>
+                    <th>Participant</th>
+                    <th>Score</th>
+                    <th>Completed</th>
+                </tr>
+            </thead>
+            <tbody id="scores-table">
+                {% if attempts %}
+                    {% for attempt in attempts %}
+                        <tr>
+                            <td><strong class="fw-bold">{{ attempt.quizzer_name }}</strong></td>
+                            <td>{{ attempt.correct_count }} / {{ total_questions }}</td>
+                            <td>{{ attempt.completed_at|date:"D d. M - H:i" }}</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="3" class="empty-state">No completed attempts yet</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

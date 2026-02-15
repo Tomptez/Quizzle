@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Quizzle</title>
+    {% load static %}
+
+    <link rel="stylesheet" href="{% static 'quiz/css/layout.css' %}">
+    <link rel="icon" href="./favicon.ico" type="image/x-icon">
+    <link href="{% static 'quiz/bootstrap.min.css' %}" rel="stylesheet" >
+    <link href="{% static 'quiz/bootstrap-icons.css' %}" rel="stylesheet">
+    {% block head %}
+    {% endblock %}
+  </head>
+  <body>
+    <div id="header">
+      <div class="container-80">
+        <h1><a href="{% url 'index' %}">Quizzle</a></h1>
+      </div>
+    </div>
+    {% block content %}
+    {% endblock %}
+  </body>
+</html>

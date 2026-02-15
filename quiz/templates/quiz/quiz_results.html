@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Results</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'quiz/css/quiz_results.css' %}">
+</head>
+<body>
+    <div class="container">
+        <h1>Quiz Complete!</h1>
+        <div class="score-display">{{ correct_count }}/{{ total }}</div>
+        <div class="score-text">You got {{ correct_count }} out of {{ total }} questions correct</div>
+        <div class="mt-4">
+            <a href="/scoreboard/{{ quiz.public_id }}/" class="btn btn-primary">View Scoreboard</a>
+        </div>
+    </div>
+</body>
+</html>

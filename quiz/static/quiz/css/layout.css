@@ -1,0 +1,22 @@
+.container-80 {
+  max-width: 80% !important;
+  margin:0 auto !important;
+  padding-top: 20px;
+}
+
+#header {
+  width: 100%;
+  height: 150px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+#header h1 a {
+  font-size: 4.5rem;
+  font-weight: bold;
+  color: white;
+  text-decoration: none;
+}
+
+#header h1 a:hover {
+  color: rgb(187, 216, 252);
+}

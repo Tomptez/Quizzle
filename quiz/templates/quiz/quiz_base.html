@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quizzle</title>
+    <link href="{% static 'quiz/bootstrap.min.css' %}" rel="stylesheet" >
+    <link rel="stylesheet" href="{% static 'quiz/css/quiz.css' %}">
+    {% block head %}
+    {% endblock %}
+</head>
+<body>
+{% block content %}
+{% endblock %}
+
+</body>
+</html>
