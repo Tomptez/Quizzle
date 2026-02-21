@@ -41,4 +41,5 @@ urlpatterns = [
     path('quiz/api/update-question-time-limit', views.updateQuestionTimeLimit, name="updateQuestionTimeLimit"),
     path('quiz/api/save-answer', views.save_answer, name='save_answer'),
     path('quiz/api/save-participant-name', views.save_participant_name, name='save_participant_name'),
+    path('quiz/presenter/<str:admin_id>/', views.presenter_view, name='presenter_view'),
     ]

@@ -41,6 +41,14 @@
           </div>
 
           <div class="border-top pt-4 pb-4">
+            <h6 class="mb-3 fw-semibold">Guided Quiz</h6>
+            <p class="text-muted small mb-2">Present this quiz live</p>
+            <button class="btn btn-sm btn-success" onclick="startGuidedQuiz()">
+              Start Guided Quiz
+            </button>
+          </div>
+
+          <div class="border-top pt-4 pb-4">
             <h6 class="mb-3 fw-semibold">Public Quiz Link</h6>
             <div class="d-flex align-items-center gap-2">
               <input type="text" class="form-control form-control-sm" id="publicQuizId" readonly>
@@ -184,8 +192,13 @@
         const publicQuizIdField = document.getElementById("publicQuizId");
         const publicId = data.public_id;
         const origin = window.location.origin;
-        const publicQuizLink = `${origin}/quiz/${publicId}`;
+        const publicQuizLink = `{% url 'quiz' public_quizid='${publicId}' %}`;
         publicQuizIdField.value = publicQuizLink;
+      }
+
+      function startGuidedQuiz() {
+        const adminId = window.location.pathname.split("/").filter(Boolean).pop();
+        window.open("{% url 'presenter_view' admin_id=admin_id %}", '_blank');
       }
 
       function copyPublicQuizLink() {

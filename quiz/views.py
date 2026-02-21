@@ -52,6 +52,7 @@ def adminQuiz(request, admin_quizid):
         quiz_serialized = QuizSerializer(quiz)
         context["quiz"] = json.dumps(quiz_serialized.data)
         context["public_id"] = quiz.public_id
+        context["admin_id"] = quiz.admin_id
         logging.info(quiz)
         return render(request, 'quiz/quiz_settings.html', context)
     except Exception as e:
@@ -347,3 +348,14 @@ def scoreboard(request, public_id):
         'total_questions': quiz.questions.count(),
     }
     return render(request, 'quiz/scoreboard.html', context)
+
+def presenter_view(request, admin_id):
+    quiz = get_object_or_404(Quiz, admin_id=admin_id)
+    quiz.save()
+    quiz_serialized = QuizSerializer(quiz)
+    context = {
+        'quiz': json.dumps(quiz_serialized.data),
+        'admin_id': admin_id,
+        'public_id': quiz.public_id,
+    }
+    return render(request, 'quiz/quiz_presenter.html', context)
