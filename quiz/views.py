@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 import secrets
 import logging
 import json
-from .serializers import QuizSerializer, QuestionSerializer
+from .serializers import AdminQuizSerializer, QuestionSerializer, ParticipantQuizSerializer
 from django.utils import timezone
 from django.http import JsonResponse
 from django.db import models
@@ -19,7 +19,7 @@ def quiz(request, public_quizid):
     
     attempt = QuizAttempt.objects.create(quiz=quiz, participant_id=secrets.token_urlsafe(12))
     
-    quiz_serialized = QuizSerializer(quiz)
+    quiz_serialized = ParticipantQuizSerializer(quiz)
     context = {
         'quiz': json.dumps(quiz_serialized.data),
         'attempt_id': attempt.id,
@@ -49,7 +49,7 @@ def adminQuiz(request, admin_quizid):
     try:
         print(f"Looking for id {admin_quizid}")
         quiz = get_object_or_404(Quiz, admin_id=admin_quizid)
-        quiz_serialized = QuizSerializer(quiz)
+        quiz_serialized = AdminQuizSerializer(quiz)
         context["quiz"] = json.dumps(quiz_serialized.data)
         context["public_id"] = quiz.public_id
         context["admin_id"] = quiz.admin_id
@@ -352,7 +352,7 @@ def scoreboard(request, public_id):
 def presenter_view(request, admin_id):
     quiz = get_object_or_404(Quiz, admin_id=admin_id)
     quiz.save()
-    quiz_serialized = QuizSerializer(quiz)
+    quiz_serialized = AdminQuizSerializer(quiz)
     context = {
         'quiz': json.dumps(quiz_serialized.data),
         'admin_id': admin_id,
