@@ -454,3 +454,12 @@ class QuizViewTests(TestCase):
         self.assertEqual(response.context['attempts'][0].quizzer_name, "Alice")
         self.assertEqual(response.context['attempts'][0].correct_count, 2)
         self.assertEqual(response.context['total_questions'], 2)
+
+    def test_presenter_view(self):
+        """Test presenter view returns 200 and correct context"""
+        response = self.client.get(
+            reverse('presenter_view', args=[self.quiz.admin_id])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['admin_id'], self.quiz.admin_id)
+        self.assertEqual(response.context['public_id'], self.quiz.public_id)
