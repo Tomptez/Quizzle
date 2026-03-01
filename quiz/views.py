@@ -69,7 +69,7 @@ def adminQuiz(request, admin_quizid):
 
 def calculate_score(attempt_id):
     try:
-        attempt = get_object_or_404(QuizAttempt, id=attempt_id)
+        attempt = QuizAttempt.objects.get(id=attempt_id)
         
         user_answers = UserAnswer.objects.filter(attempt=attempt)
         correct_count = 0
@@ -82,7 +82,7 @@ def calculate_score(attempt_id):
         attempt.completed_at = timezone.now()
         attempt.save()
         
-    except Exception as e:
+    except Exception:
         logging.exception("Failed to calculate score")
 
 @require_http_methods(["POST"])
@@ -103,7 +103,7 @@ def submit_quiz(request, public_quizid):
                     attempt=attempt, question=question,
                     defaults={'selected_answer': selected_answer}
                 )
-            except:
+            except Exception:
                 logging.exception("Couldn't submit quiz")
         
         calculate_score(attempt.id)
@@ -112,7 +112,7 @@ def submit_quiz(request, public_quizid):
             'status': 'success',
             'redirect_url': f'/results/{attempt.id}/'
         })
-    except Exception as e:
+    except Exception:
         logging.exception("Failed to submit quiz")
         return JsonResponse({'status': 'error', 'message': 'Error submitting quiz'}, status=400)
 
@@ -140,7 +140,7 @@ def newQuiz(request):
     default_answer.question = first_question
     default_answer.save()
     print(f"newQuiz(): Created new quiz with admin ID {quiz.admin_id}")
-    return redirect(f"quiz/admin/{quiz.admin_id}")
+    return redirect('adminQuiz', admin_quizid=quiz.admin_id)
 
 @require_http_methods(["POST"])
 def addQuestion(request):
@@ -169,7 +169,7 @@ def addAnswer(request):
         answer.save()
         print("Answer saved")
         return JsonResponse({"status": "success", "answer_id": answer.id})
-    except Exception as e:
+    except Exception:
         logging.exception("Failed to add answer")
         return JsonResponse({"status": "error"}, status=400)
 
@@ -187,7 +187,7 @@ def deleteQuestion(request):
         question.delete()
         Question.objects.filter(quiz=quiz, position__gt=deleted_position).update(position=models.F('position') - 1)
         return JsonResponse({"status": "success"})
-    except Exception as e:
+    except Exception:
         logging.exception("Failed to delete question")
         return JsonResponse({"status": "error"}, status=400)
 
@@ -199,7 +199,7 @@ def deleteAnswer(request):
         answer = Answer.objects.get(id=answer_id)
         answer.delete()
         return JsonResponse({"status": "success"})
-    except Exception as e:
+    except Exception:
         logging.exception("Failed to delete answer")
         return JsonResponse({"status": "error"}, status=400)
 
@@ -226,7 +226,7 @@ def swapQuestionPositions(request):
         q1.save()
         
         return JsonResponse({"status": "success"})
-    except Exception as e:
+    except Exception:
         logging.exception("Failed to swap positions")
         return JsonResponse({"status": "error"}, status=400)
     
@@ -240,7 +240,7 @@ def updateCorrectAnswer(request):
         answer.correct = True
         answer.save()
         return JsonResponse({"status": "success"})
-    except:
+    except Exception:
         return JsonResponse({"status": "error"}, status=400)
 
 @require_http_methods(["POST"])
@@ -253,7 +253,7 @@ def updateQuizName(request):
         quiz.name = quiz_name
         quiz.save()
         return JsonResponse({"status": "success"})
-    except Exception as e:
+    except Exception:
         logging.exception("Failed to update quiz name")
         return JsonResponse({"status": "error"}, status=400)
 
@@ -267,7 +267,7 @@ def updateQuestionText(request):
         question.text = question_text
         question.save()
         return JsonResponse({"status": "success"})
-    except Exception as e:
+    except Exception:
         logging.exception("Failed to update question text")
         return JsonResponse({"status": "error"}, status=400)
 
@@ -281,7 +281,7 @@ def updateAnswerText(request):
         answer.text = answer_text
         answer.save()
         return JsonResponse({"status": "success"})
-    except Exception as e:
+    except Exception:
         logging.exception("Failed to update answer text")
         return JsonResponse({"status": "error"}, status=400)
 
@@ -300,7 +300,7 @@ def updateQuizTimeLimit(request):
             quiz.default_timelimit = default_timelimit
         quiz.save()
         return JsonResponse({"status": "success"})
-    except Exception as e:
+    except Exception:
         logging.exception("Failed to update quiz time limit")
         return JsonResponse({"status": "error"}, status=400)
 
@@ -315,7 +315,7 @@ def updateQuestionTimeLimit(request):
         question.timelimit = timelimit
         question.save()
         return JsonResponse({"status": "success"})
-    except Exception as e:
+    except Exception:
         logging.exception("Failed to update question time limit")
         return JsonResponse({"status": "error"}, status=400)
 
@@ -328,6 +328,8 @@ def save_answer(request):
         answer_id = data.get('answer_id')
         
         attempt = QuizAttempt.objects.get(id=attempt_id)
+        if attempt.completed_at is not None:
+            return JsonResponse({"status": "error", "message": "Quiz already submitted"}, status=400)
         question = Question.objects.get(id=question_id, quiz=attempt.quiz)
         
         # Delete previous answer if already exists
@@ -363,8 +365,9 @@ def scoreboard(request, public_id):
 
 def presenter_view(request, admin_id):
     quiz = get_object_or_404(Quiz, admin_id=admin_id)
-    quiz.guided_current_question = -1
-    quiz.save()
+    if quiz.guided_current_question is None:
+        quiz.guided_current_question = -1
+        quiz.save()
     quiz_serialized = AdminQuizSerializer(quiz)
     context = {
         'quiz': json.dumps(quiz_serialized.data),
@@ -402,6 +405,6 @@ def advance_guided_question(request):
                 {"type": "guided_event", "data": {"action": "end"}}
             )
             return JsonResponse({"status": "ended"})
-    except Exception as e:
+    except Exception:
         logging.exception("Failed to advance guided question")
         return JsonResponse({"status": "error"}, status=400)

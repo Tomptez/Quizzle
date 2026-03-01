@@ -19,7 +19,7 @@ class Question(models.Model):
     timelimit = models.IntegerField(default=None, null=True, blank=True)
     
     def save(self, *args, **kwargs):
-        if not self.position:
+        if self.position is None:
             self.position = self.quiz.questions.count() + 1
         
         if self.timelimit is None:
