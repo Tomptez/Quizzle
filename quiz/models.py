@@ -9,6 +9,7 @@ class Quiz(models.Model):
     default_timelimit = models.IntegerField(default=20)
     public_id = models.CharField(unique=True, null=False, max_length=6, default=generate_public_id)
     admin_id = models.CharField(unique=True, null=False, max_length=16, default=generate_admin_id)
+    guided_current_question = models.IntegerField(default=None, null=True, blank=True)
     created_at = models.DateField(default=timezone.now)
     
 class Question(models.Model):

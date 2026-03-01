@@ -70,7 +70,7 @@ class QuizViewTests(TestCase):
     
     def test_new_quiz_creates_quiz(self):
         """Test newQuiz creates a new quiz"""
-        response = self.client.get(reverse('newQuiz'))
+        response = self.client.post(reverse('newQuiz'))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Quiz.objects.count(), 2)
     
@@ -389,7 +389,9 @@ class QuizViewTests(TestCase):
             'updateQuizTimeLimit',
             'updateQuestionTimeLimit',
             'save_answer',
-            'save_participant_name'
+            'save_participant_name',
+            'newQuiz',
+            'advance_guided_question',
         ]
         
         # Endpoints that require URL arguments

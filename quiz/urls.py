@@ -27,6 +27,7 @@ urlpatterns = [
     path('take/<str:public_quizid>/submit/', views.submit_quiz, name='submit_quiz'),
     path('results/<int:attempt_id>/', views.quiz_results, name='quiz_results'),
     path('scoreboard/<str:public_id>/', views.scoreboard, name='scoreboard'),
+    path('quiz/presenter/<str:admin_id>/', views.presenter_view, name='presenter_view'),
     path('quiz/admin/<str:admin_quizid>/', views.adminQuiz, name="adminQuiz"),
     path('quiz/api/add-answer', views.addAnswer, name="addAnswer"),
     path('quiz/api/delete-answer', views.deleteAnswer, name="deleteAnswer"),
@@ -41,5 +42,5 @@ urlpatterns = [
     path('quiz/api/update-question-time-limit', views.updateQuestionTimeLimit, name="updateQuestionTimeLimit"),
     path('quiz/api/save-answer', views.save_answer, name='save_answer'),
     path('quiz/api/save-participant-name', views.save_participant_name, name='save_participant_name'),
-    path('quiz/presenter/<str:admin_id>/', views.presenter_view, name='presenter_view'),
+    path('quiz/api/advance-guided-question', views.advance_guided_question, name='advance_guided_question'),
     ]

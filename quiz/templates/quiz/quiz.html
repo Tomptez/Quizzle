@@ -10,7 +10,15 @@
     <div class="modal-content">
         <h3>Welcome! What's your name?</h3>
         <input type="text" id="participantNameInput" class="form-control" placeholder="Enter your name"/>
-        <button id="startQuizBtn" class="btn btn-primary mt-3">Start Quiz</button>
+        <button id="startQuizBtn" class="btn btn-primary mt-3">Join Quiz</button>
+    </div>
+</div>
+
+<div id="waitingScreen" class="modal-overlay" style="display: none;">
+    <div class="modal-content text-center">
+        <h3>You're in!</h3>
+        <p class="text-muted">Waiting for the presenter to start&hellip;</p>
+        <div class="spinner-border text-primary mt-3" role="status"></div>
     </div>
 </div>
 
@@ -39,56 +47,25 @@
     const quizData = {{ quiz|safe }};
     const attemptId = {{ attempt_id }};
     const publicId = "{{ public_quizid }}";
-    
+    const isGuided = {{ is_guided }};
+    const guidedStartQuestion = {{ guided_start_question }};
+
     let currentQuestionIndex = 0;
     let userAnswers = {};
     let timeLeft = {};
     let timerInterval = null;
-
-    async function startQuiz() {
-        const participantName = document.getElementById('participantNameInput').value.trim() || 'anonymous';
-        
-        try {
-            const response = await fetch('/quiz/api/save-participant-name', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': "{{ csrf_token }}"
-                },
-                body: JSON.stringify({
-                    attempt_id: attemptId,
-                    participant_name: participantName
-                })
-            });
-            
-            if (response.ok) {
-                document.getElementById('participantModal').style.display = 'none';
-                document.getElementById('quizContainer').style.display = 'block';
-                initializeQuiz();
-            } else {
-                alert('Failed to save your name. Please try again.');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Error starting quiz');
-        }
-    }
-
-    document.getElementById('startQuizBtn').addEventListener('click', startQuiz);
-    document.getElementById('participantNameInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            startQuiz();
-        }
-    });
     let quizStarted = false;
+    let guidedWsConnected = false;
 
     async function startQuiz() {
         const participantName = document.getElementById('participantNameInput').value.trim();
         if (!participantName) {
-            alert('Please enter your name to start the quiz');
+            alert('Please enter your name to continue');
             return;
         }
-        
+        if (quizStarted) return;
+        quizStarted = true;
+
         try {
             const response = await fetch('/quiz/api/save-participant-name', {
                 method: 'POST',
@@ -101,37 +78,83 @@
                     participant_name: participantName
                 })
             });
-            
+
             if (response.ok) {
-                quizStarted = true;
                 document.getElementById('participantModal').style.display = 'none';
-                document.getElementById('quizContainer').style.display = 'block';
-                initializeQuiz();
+                if (isGuided) {
+                    if (guidedStartQuestion >= 0) {
+                        currentQuestionIndex = guidedStartQuestion;
+                        document.getElementById('quizContainer').style.display = 'block';
+                        initializeQuiz();
+                    } else {
+                        document.getElementById('waitingScreen').style.display = 'flex';
+                    }
+                    connectGuidedWebSocket();
+                } else {
+                    document.getElementById('quizContainer').style.display = 'block';
+                    initializeQuiz();
+                }
             } else {
+                quizStarted = false;
                 alert('Failed to save your name. Please try again.');
             }
         } catch (error) {
+            quizStarted = false;
             console.error('Error:', error);
-            alert('Error starting quiz');
+            alert('Error joining quiz');
         }
     }
 
     document.getElementById('startQuizBtn').addEventListener('click', startQuiz);
     document.getElementById('participantNameInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            startQuiz();
-        }
+        if (e.key === 'Enter') startQuiz();
     });
+
+    let quizInitialized = false;
 
     function initializeQuiz() {
         document.getElementById('quizName').textContent = quizData.name;
         renderQuestion();
         updateProgress();
-        
-        if (quizData.timelimit_active) {
+
+        if (isGuided) {
+            document.getElementById('prevBtn').style.display = 'none';
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('timer').style.display = 'none';
+        } else if (quizData.timelimit_active) {
             document.getElementById('prevBtn').style.display = 'none';
             startTimers();
         }
+        quizInitialized = true;
+    }
+
+    function connectGuidedWebSocket() {
+        if (guidedWsConnected) return;
+        guidedWsConnected = true;
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws/guided/${publicId}/`);
+
+        ws.onmessage = function(e) {
+            const msg = JSON.parse(e.data);
+            if (msg.action === 'advance') {
+                currentQuestionIndex = msg.question_index;
+                document.getElementById('waitingScreen').style.display = 'none';
+                if (!quizInitialized) {
+                    document.getElementById('quizContainer').style.display = 'block';
+                    initializeQuiz();
+                } else {
+                    renderQuestion();
+                    updateProgress();
+                }
+            } else if (msg.action === 'end') {
+                completeQuiz();
+            }
+        };
+
+        ws.onclose = function() {
+            guidedWsConnected = false;
+            setTimeout(connectGuidedWebSocket, 2000);
+        };
     }
 
     function renderQuestion() {
@@ -166,7 +189,9 @@
           button.addEventListener('click', (e) => {
               buttons.forEach(btn => btn.classList.remove('selected'));
               button.classList.add('selected');
-              userAnswers[question.id] = parseInt(button.dataset.answerId);
+              const answerId = parseInt(button.dataset.answerId);
+              userAnswers[question.id] = answerId;
+              saveAnswer(question.id, answerId);
           });
       });
       
@@ -198,11 +223,6 @@
     }
 
     async function nextQuestion() {
-        const currentQuestion = quizData.questions[currentQuestionIndex];
-        const selectedAnswer = userAnswers[currentQuestion.id];
-        
-        await saveAnswer(currentQuestion.id, selectedAnswer);
-        
         if (currentQuestionIndex === quizData.questions.length - 1) {
             completeQuiz();
         } else if (currentQuestionIndex < quizData.questions.length - 1) {
@@ -232,14 +252,8 @@
                 const isLastQuestion = currentQuestionIndex === quizData.questions.length - 1;
                 
                 if (isLastQuestion) {
-                    // Submit on last question
-                    const currentQuestion = quizData.questions[currentQuestionIndex];
-                    const selectedAnswer = userAnswers[currentQuestion.id];
-                    saveAnswer(currentQuestion.id, selectedAnswer).then(() => {
-                        completeQuiz();
-                    });
+                    completeQuiz();
                 } else if (currentQuestionIndex < quizData.questions.length - 1) {
-                    // Next question when time runs out
                     currentQuestionIndex++;
                     renderQuestion();
                     updateProgress();

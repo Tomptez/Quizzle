@@ -7,6 +7,8 @@ from django.utils import timezone
 from django.http import JsonResponse
 from django.db import models
 from django.views.decorators.http import require_http_methods
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 from .models import Quiz, Answer, Question, QuizAttempt, UserAnswer
 
@@ -14,16 +16,27 @@ def index(request):
     return render(request, 'quiz/index.html', {})
 
 def quiz(request, public_quizid):
-    context = {}
     quiz = get_object_or_404(Quiz, public_id=public_quizid)
-    
-    attempt = QuizAttempt.objects.create(quiz=quiz, participant_id=secrets.token_urlsafe(12))
-    
     quiz_serialized = ParticipantQuizSerializer(quiz)
+    
+    session_key = f'quiz_attempt_{public_quizid}'
+    attempt_id = request.session.get(session_key)
+    if attempt_id:
+        attempt = QuizAttempt.objects.filter(id=attempt_id, quiz=quiz, completed_at__isnull=True).first()
+    else:
+        attempt = None
+    if not attempt:
+        attempt = QuizAttempt.objects.create(quiz=quiz, participant_id=secrets.token_urlsafe(12))
+        request.session[session_key] = attempt.id
+    
+    is_guided = quiz.guided_current_question is not None
+    
     context = {
         'quiz': json.dumps(quiz_serialized.data),
         'attempt_id': attempt.id,
-        'public_quizid': public_quizid
+        'public_quizid': public_quizid,
+        'is_guided': json.dumps(is_guided),
+        'guided_start_question': quiz.guided_current_question if is_guided else -1,
     }
     
     return render(request, 'quiz/quiz.html', context)
@@ -45,19 +58,14 @@ def save_participant_name(request):
         return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
 def adminQuiz(request, admin_quizid):
-    context = {}
-    try:
-        print(f"Looking for id {admin_quizid}")
-        quiz = get_object_or_404(Quiz, admin_id=admin_quizid)
-        quiz_serialized = AdminQuizSerializer(quiz)
-        context["quiz"] = json.dumps(quiz_serialized.data)
-        context["public_id"] = quiz.public_id
-        context["admin_id"] = quiz.admin_id
-        logging.info(quiz)
-        return render(request, 'quiz/quiz_settings.html', context)
-    except Exception as e:
-        logging.exception("Failed to get quiz for admin view")
-        return JsonResponse({"status": "error", "message": str(e)}, status=400)
+    quiz = get_object_or_404(Quiz, admin_id=admin_quizid)
+    quiz_serialized = AdminQuizSerializer(quiz)
+    context = {
+        "quiz": json.dumps(quiz_serialized.data),
+        "public_id": quiz.public_id,
+        "admin_id": quiz.admin_id,
+    }
+    return render(request, 'quiz/quiz_settings.html', context)
 
 def calculate_score(attempt_id):
     try:
@@ -91,7 +99,10 @@ def submit_quiz(request, public_quizid):
             try:
                 question = get_object_or_404(Question, id=question_id, quiz=quiz)
                 selected_answer = get_object_or_404(Answer, id=answer_id, question=question)
-                UserAnswer.objects.create(attempt=attempt, question=question, selected_answer=selected_answer)
+                UserAnswer.objects.update_or_create(
+                    attempt=attempt, question=question,
+                    defaults={'selected_answer': selected_answer}
+                )
             except:
                 logging.exception("Couldn't submit quiz")
         
@@ -118,6 +129,7 @@ def quiz_results(request, attempt_id):
     }
     return render(request, 'quiz/quiz_results.html', context)
 
+@require_http_methods(["POST"])
 def newQuiz(request):
     quiz = Quiz()
     quiz.save()
@@ -316,7 +328,7 @@ def save_answer(request):
         answer_id = data.get('answer_id')
         
         attempt = QuizAttempt.objects.get(id=attempt_id)
-        question = Question.objects.get(id=question_id)
+        question = Question.objects.get(id=question_id, quiz=attempt.quiz)
         
         # Delete previous answer if already exists
         UserAnswer.objects.filter(attempt=attempt, question=question).delete()
@@ -351,6 +363,7 @@ def scoreboard(request, public_id):
 
 def presenter_view(request, admin_id):
     quiz = get_object_or_404(Quiz, admin_id=admin_id)
+    quiz.guided_current_question = -1
     quiz.save()
     quiz_serialized = AdminQuizSerializer(quiz)
     context = {
@@ -359,3 +372,36 @@ def presenter_view(request, admin_id):
         'public_id': quiz.public_id,
     }
     return render(request, 'quiz/quiz_presenter.html', context)
+
+@require_http_methods(["POST"])
+def advance_guided_question(request):
+    try:
+        data = json.loads(request.body)
+        admin_id = data.get("admin_id")
+        quiz = get_object_or_404(Quiz, admin_id=admin_id)
+        total = quiz.questions.count()
+
+        if quiz.guided_current_question is None:
+            return JsonResponse({"status": "error", "message": "No active guided session"}, status=400)
+
+        if quiz.guided_current_question < total - 1:
+            quiz.guided_current_question += 1
+            quiz.save()
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"guided_{quiz.public_id}",
+                {"type": "guided_event", "data": {"action": "advance", "question_index": quiz.guided_current_question}}
+            )
+            return JsonResponse({"status": "success", "question_index": quiz.guided_current_question})
+        else:
+            quiz.guided_current_question = None
+            quiz.save()
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"guided_{quiz.public_id}",
+                {"type": "guided_event", "data": {"action": "end"}}
+            )
+            return JsonResponse({"status": "ended"})
+    except Exception as e:
+        logging.exception("Failed to advance guided question")
+        return JsonResponse({"status": "error"}, status=400)

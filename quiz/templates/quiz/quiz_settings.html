@@ -37,7 +37,7 @@
           </div>
           <div class="border-top pt-4 pb-4">
             <h6 class="mb-3 fw-semibold">Scoreboard</h6>
-            <a href="/scoreboard/{{ public_id }}/" class="btn btn-sm btn-info">View Scoreboard</a>
+            <a href="{% url 'scoreboard' public_id %}" class="btn btn-sm btn-info">View Scoreboard</a>
           </div>
 
           <div class="border-top pt-4 pb-4">
@@ -79,16 +79,11 @@
     </div>
   </div>
 
-
-
-<!--    <script src="index.js"></script> -->
     <script>
 
       data = {{ quiz|safe }}
-      console.log(data)
       
-      // Maximum Number of options
-      const maxOptions = 5;
+      const maxOptions = 6;
 
       async function apiCall({url, body, parseResponse = false}) {
         let csrf_token = "{{ csrf_token }}"
@@ -187,12 +182,9 @@
         }, 750)
       }
 
-
       function initializePublicQuizLink() {
         const publicQuizIdField = document.getElementById("publicQuizId");
-        const publicId = data.public_id;
-        const origin = window.location.origin;
-        const publicQuizLink = `{% url 'quiz' public_quizid='${publicId}' %}`;
+        const publicQuizLink = `${window.location.origin}{% url 'quiz' public_quizid=public_id %}`;
         publicQuizIdField.value = publicQuizLink;
       }
 
