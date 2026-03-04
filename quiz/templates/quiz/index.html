@@ -14,7 +14,7 @@
 <div class="index-container">
     <h1>Quizzle</h1>
     <p class="subtitle">Create your own Quiz for free!</p>
-    <form method="post" action="{% url 'newQuiz' %}">
+    <form method="post" action="{% url 'new_quiz' %}">
         {% csrf_token %}
         <button type="submit" class="btn btn-primary">Create new quiz</button>
     </form>

@@ -65,12 +65,12 @@ class QuizViewTests(TestCase):
     
     def test_admin_quiz_view_with_valid_id(self):
         """Test admin quiz page loads with valid ID"""
-        response = self.client.get(reverse('adminQuiz', args=[self.quiz.admin_id]))
+        response = self.client.get(reverse('admin_quiz', args=[self.quiz.admin_id]))
         self.assertEqual(response.status_code, 200)
     
     def test_new_quiz_creates_quiz(self):
         """Test newQuiz creates a new quiz"""
-        response = self.client.post(reverse('newQuiz'))
+        response = self.client.post(reverse('new_quiz'))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Quiz.objects.count(), 2)
     
@@ -84,7 +84,7 @@ class QuizViewTests(TestCase):
         }
         
         response = self.client.post(
-            reverse('addQuestion'),
+            reverse('add_question'),
             data=json.dumps(data),
             content_type='application/json'
         )
@@ -101,7 +101,7 @@ class QuizViewTests(TestCase):
         }
         
         response = self.client.post(
-            reverse('addAnswer'),
+            reverse('add_answer'),
             data=json.dumps(data),
             content_type='application/json'
         )
@@ -118,7 +118,7 @@ class QuizViewTests(TestCase):
         }
         
         response = self.client.post(
-            reverse('deleteQuestion'),
+            reverse('delete_question'),
             data=json.dumps(data),
             content_type='application/json'
         )
@@ -131,7 +131,7 @@ class QuizViewTests(TestCase):
         data = {"answer_id": self.answer2.id}
         
         response = self.client.post(
-            reverse('deleteAnswer'),
+            reverse('delete_answer'),
             data=json.dumps(data),
             content_type='application/json'
         )
@@ -148,7 +148,7 @@ class QuizViewTests(TestCase):
         }
         
         response = self.client.post(
-            reverse('updateQuizName'),
+            reverse('update_quiz_name'),
             data=json.dumps(data),
             content_type='application/json'
         )
@@ -165,7 +165,7 @@ class QuizViewTests(TestCase):
         }
         
         response = self.client.post(
-            reverse('updateQuestionText'),
+            reverse('update_question_text'),
             data=json.dumps(data),
             content_type='application/json'
         )
@@ -182,7 +182,7 @@ class QuizViewTests(TestCase):
         }
         
         response = self.client.post(
-            reverse('updateAnswerText'),
+            reverse('update_answer_text'),
             data=json.dumps(data),
             content_type='application/json'
         )
@@ -196,7 +196,7 @@ class QuizViewTests(TestCase):
         data = {"answer_id": self.answer2.id}
         
         response = self.client.post(
-            reverse('updateCorrectAnswer'),
+            reverse('update_correct_answer'),
             data=json.dumps(data),
             content_type='application/json'
         )
@@ -220,7 +220,7 @@ class QuizViewTests(TestCase):
         }
         
         response = self.client.post(
-            reverse('swapQuestionPositions'),
+            reverse('swap_question_positions'),
             data=json.dumps(data),
             content_type='application/json'
         )
@@ -240,7 +240,7 @@ class QuizViewTests(TestCase):
         }
         
         response = self.client.post(
-            reverse('updateQuizTimeLimit'),
+            reverse('update_quiz_timelimit'),
             data=json.dumps(data),
             content_type='application/json'
         )
@@ -257,7 +257,7 @@ class QuizViewTests(TestCase):
         }
         
         response = self.client.post(
-            reverse('updateQuizTimeLimit'),
+            reverse('update_quiz_timelimit'),
             data=json.dumps(data),
             content_type='application/json'
         )
@@ -274,7 +274,7 @@ class QuizViewTests(TestCase):
         }
         
         response = self.client.post(
-            reverse('updateQuestionTimeLimit'),
+            reverse('update_question_timelimit'),
             data=json.dumps(data),
             content_type='application/json'
         )
@@ -377,20 +377,20 @@ class QuizViewTests(TestCase):
         
         # Endpoints without required arguments
         endpoints_no_args = [
-            'addQuestion',
-            'addAnswer',
-            'deleteQuestion',
-            'deleteAnswer',
-            'swapQuestionPositions',
-            'updateCorrectAnswer',
-            'updateQuizName',
-            'updateQuestionText',
-            'updateAnswerText',
-            'updateQuizTimeLimit',
-            'updateQuestionTimeLimit',
+            'add_question',
+            'add_answer',
+            'delete_question',
+            'delete_answer',
+            'swap_question_positions',
+            'update_correct_answer',
+            'update_quiz_name',
+            'update_question_text',
+            'update_answer_text',
+            'update_quiz_timelimit',
+            'update_question_timelimit',
             'save_answer',
             'save_participant_name',
-            'newQuiz',
+            'new_quiz',
             'advance_guided_question',
         ]
         

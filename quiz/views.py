@@ -57,7 +57,7 @@ def save_participant_name(request):
         logging.exception("Failed to save participant name")
         return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
-def adminQuiz(request, admin_quizid):
+def admin_quiz(request, admin_quizid):
     quiz = get_object_or_404(Quiz, admin_id=admin_quizid)
     quiz_serialized = AdminQuizSerializer(quiz)
     context = {
@@ -130,7 +130,7 @@ def quiz_results(request, attempt_id):
     return render(request, 'quiz/quiz_results.html', context)
 
 @require_http_methods(["POST"])
-def newQuiz(request):
+def new_quiz(request):
     quiz = Quiz()
     quiz.save()
     first_question = Question()
@@ -139,43 +139,42 @@ def newQuiz(request):
     default_answer = Answer(correct=True)
     default_answer.question = first_question
     default_answer.save()
-    print(f"newQuiz(): Created new quiz with admin ID {quiz.admin_id}")
-    return redirect('adminQuiz', admin_quizid=quiz.admin_id)
+    logging.debug(f"new_quiz(): Created quiz {quiz.admin_id}")
+    return redirect('admin_quiz', admin_quizid=quiz.admin_id)
 
 @require_http_methods(["POST"])
-def addQuestion(request):
-    print("addQuestion()")
+def add_question(request):
     data = json.loads(request.body)
-    quiz = Quiz.objects.get(admin_id=data.get("admin_id"))
-    question = Question(quiz=quiz)
-    question.save()
-    answer = Answer(question=question, correct=True)
-    answer.save()
-    return JsonResponse({"status": "success", "question": QuestionSerializer(question).data})
+    try:
+        quiz = get_object_or_404(Quiz, admin_id=data.get("admin_id"))
+        question = Question(quiz=quiz)
+        question.save()
+        answer = Answer(question=question, correct=True)
+        answer.save()
+        return JsonResponse({"status": "success", "question": QuestionSerializer(question).data})
+    except Exception:
+        logging.exception("Failed to add question")
+        return JsonResponse({"status": "error"}, status=400)
 
 @require_http_methods(["POST"])
-def addAnswer(request):
-    print("addAnswer")
+def add_answer(request):
     data = json.loads(request.body)
     question_id = data.get("question_id")
     text = data.get("text")
     correct = data.get("correct")
-    print(data)
     try:
         question = Question.objects.get(id=question_id)
         if correct:
             Answer.objects.filter(question=question).update(correct=False)
         answer = Answer(question=question, text=text, correct=correct)
         answer.save()
-        print("Answer saved")
         return JsonResponse({"status": "success", "answer_id": answer.id})
     except Exception:
         logging.exception("Failed to add answer")
         return JsonResponse({"status": "error"}, status=400)
 
 @require_http_methods(["POST"])
-def deleteQuestion(request):
-    print("deleteQuestion")
+def delete_question(request):
     data = json.loads(request.body)
     question_id = data.get("question_id")
     admin_id = data.get("admin_id")
@@ -192,7 +191,7 @@ def deleteQuestion(request):
         return JsonResponse({"status": "error"}, status=400)
 
 @require_http_methods(["POST"])
-def deleteAnswer(request):
+def delete_answer(request):
     data = json.loads(request.body)
     answer_id = data.get("answer_id")
     try:
@@ -204,8 +203,7 @@ def deleteAnswer(request):
         return JsonResponse({"status": "error"}, status=400)
 
 @require_http_methods(["POST"])
-def swapQuestionPositions(request):
-    print("swapQuestionPositions")
+def swap_question_positions(request):
     data = json.loads(request.body)
     question_id_1 = data.get("question_id_1")
     question_id_2 = data.get("question_id_2")
@@ -231,7 +229,7 @@ def swapQuestionPositions(request):
         return JsonResponse({"status": "error"}, status=400)
     
 @require_http_methods(["POST"])
-def updateCorrectAnswer(request):
+def update_correct_answer(request):
     data = json.loads(request.body)
     answer_id = data.get("answer_id")
     try:
@@ -241,10 +239,11 @@ def updateCorrectAnswer(request):
         answer.save()
         return JsonResponse({"status": "success"})
     except Exception:
+        logging.exception("Failed to update correct answer")
         return JsonResponse({"status": "error"}, status=400)
 
 @require_http_methods(["POST"])
-def updateQuizName(request):
+def update_quiz_name(request):
     data = json.loads(request.body)
     admin_id = data.get("admin_id")
     quiz_name = data.get("quiz_name")
@@ -258,7 +257,7 @@ def updateQuizName(request):
         return JsonResponse({"status": "error"}, status=400)
 
 @require_http_methods(["POST"])
-def updateQuestionText(request):
+def update_question_text(request):
     data = json.loads(request.body)
     question_id = data.get("question_id")
     question_text = data.get("question_text")
@@ -272,7 +271,7 @@ def updateQuestionText(request):
         return JsonResponse({"status": "error"}, status=400)
 
 @require_http_methods(["POST"])
-def updateAnswerText(request):
+def update_answer_text(request):
     data = json.loads(request.body)
     answer_id = data.get("answer_id")
     answer_text = data.get("answer_text")
@@ -286,12 +285,12 @@ def updateAnswerText(request):
         return JsonResponse({"status": "error"}, status=400)
 
 @require_http_methods(["POST"])
-def updateQuizTimeLimit(request):
+def update_quiz_timelimit(request):
     data = json.loads(request.body)
     admin_id = data.get("admin_id")
     timelimit_active = data.get("timelimit_active")
     default_timelimit = data.get("default_timelimit")
-    print("Update quiz time limit:", data)
+    logging.debug(f"update_quiz_timelimit: {data}")
     try:
         quiz = Quiz.objects.get(admin_id=admin_id)
         if timelimit_active is not None:
@@ -305,11 +304,11 @@ def updateQuizTimeLimit(request):
         return JsonResponse({"status": "error"}, status=400)
 
 @require_http_methods(["POST"])
-def updateQuestionTimeLimit(request):
+def update_question_timelimit(request):
     data = json.loads(request.body)
     question_id = data.get("question_id")
     timelimit = data.get("timelimit")
-    print("Update question time limit:", data)
+    logging.debug(f"update_question_timelimit: {data}")
     try:
         question = Question.objects.get(id=question_id)
         question.timelimit = timelimit
