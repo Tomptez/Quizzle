@@ -9,4 +9,5 @@ dependencies = [
     "daphne>=4.2.1",
     "django>=6.0.3",
     "djangorestframework>=3.17.1",
+    "psycopg[binary]>=3.2",
 ]
