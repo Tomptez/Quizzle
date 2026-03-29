@@ -1,8 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 import secrets
 import logging
 import json
-from .serializers import AdminQuizSerializer, QuestionSerializer, ParticipantQuizSerializer
+
 from django.utils import timezone
 from django.http import JsonResponse
 from django.db import models
@@ -11,6 +12,7 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
 from .models import Quiz, Answer, Question, QuizAttempt, UserAnswer
+from .serializers import AdminQuizSerializer, QuestionSerializer, ParticipantQuizSerializer
 
 def index(request):
     return render(request, 'quiz/index.html', {})
@@ -71,7 +73,7 @@ def calculate_score(attempt_id):
     try:
         attempt = QuizAttempt.objects.get(id=attempt_id)
         
-        user_answers = UserAnswer.objects.filter(attempt=attempt)
+        user_answers = UserAnswer.objects.filter(attempt=attempt).select_related('selected_answer')
         correct_count = 0
         
         for user_answer in user_answers:
@@ -110,7 +112,7 @@ def submit_quiz(request, public_quizid):
         
         return JsonResponse({
             'status': 'success',
-            'redirect_url': f'/results/{attempt.id}/'
+            'redirect_url': reverse('quiz_results', args=[attempt.id])
         })
     except Exception:
         logging.exception("Failed to submit quiz")
@@ -144,8 +146,8 @@ def new_quiz(request):
 
 @require_http_methods(["POST"])
 def add_question(request):
-    data = json.loads(request.body)
     try:
+        data = json.loads(request.body)
         quiz = get_object_or_404(Quiz, admin_id=data.get("admin_id"))
         question = Question(quiz=quiz)
         question.save()
@@ -158,11 +160,11 @@ def add_question(request):
 
 @require_http_methods(["POST"])
 def add_answer(request):
-    data = json.loads(request.body)
-    question_id = data.get("question_id")
-    text = data.get("text")
-    correct = data.get("correct")
     try:
+        data = json.loads(request.body)
+        question_id = data.get("question_id")
+        text = data.get("text")
+        correct = data.get("correct")
         question = Question.objects.get(id=question_id)
         if correct:
             Answer.objects.filter(question=question).update(correct=False)
@@ -175,11 +177,10 @@ def add_answer(request):
 
 @require_http_methods(["POST"])
 def delete_question(request):
-    data = json.loads(request.body)
-    question_id = data.get("question_id")
-    admin_id = data.get("admin_id")
-    
     try:
+        data = json.loads(request.body)
+        question_id = data.get("question_id")
+        admin_id = data.get("admin_id")
         quiz = Quiz.objects.get(admin_id=admin_id)
         question = Question.objects.get(id=question_id, quiz=quiz)
         deleted_position = question.position
@@ -192,9 +193,9 @@ def delete_question(request):
 
 @require_http_methods(["POST"])
 def delete_answer(request):
-    data = json.loads(request.body)
-    answer_id = data.get("answer_id")
     try:
+        data = json.loads(request.body)
+        answer_id = data.get("answer_id")
         answer = Answer.objects.get(id=answer_id)
         answer.delete()
         return JsonResponse({"status": "success"})
@@ -204,12 +205,11 @@ def delete_answer(request):
 
 @require_http_methods(["POST"])
 def swap_question_positions(request):
-    data = json.loads(request.body)
-    question_id_1 = data.get("question_id_1")
-    question_id_2 = data.get("question_id_2")
-    admin_id = data.get("admin_id")
-    
     try:
+        data = json.loads(request.body)
+        question_id_1 = data.get("question_id_1")
+        question_id_2 = data.get("question_id_2")
+        admin_id = data.get("admin_id")
         quiz = Quiz.objects.get(admin_id=admin_id)
         q1 = Question.objects.get(id=question_id_1, quiz=quiz)
         q2 = Question.objects.get(id=question_id_2, quiz=quiz)
@@ -230,9 +230,9 @@ def swap_question_positions(request):
     
 @require_http_methods(["POST"])
 def update_correct_answer(request):
-    data = json.loads(request.body)
-    answer_id = data.get("answer_id")
     try:
+        data = json.loads(request.body)
+        answer_id = data.get("answer_id")
         answer = Answer.objects.get(id=answer_id)
         Answer.objects.filter(question=answer.question).update(correct=False)
         answer.correct = True
@@ -244,10 +244,10 @@ def update_correct_answer(request):
 
 @require_http_methods(["POST"])
 def update_quiz_name(request):
-    data = json.loads(request.body)
-    admin_id = data.get("admin_id")
-    quiz_name = data.get("quiz_name")
     try:
+        data = json.loads(request.body)
+        admin_id = data.get("admin_id")
+        quiz_name = data.get("quiz_name")
         quiz = Quiz.objects.get(admin_id=admin_id)
         quiz.name = quiz_name
         quiz.save()
@@ -258,10 +258,10 @@ def update_quiz_name(request):
 
 @require_http_methods(["POST"])
 def update_question_text(request):
-    data = json.loads(request.body)
-    question_id = data.get("question_id")
-    question_text = data.get("question_text")
     try:
+        data = json.loads(request.body)
+        question_id = data.get("question_id")
+        question_text = data.get("question_text")
         question = Question.objects.get(id=question_id)
         question.text = question_text
         question.save()
@@ -272,10 +272,10 @@ def update_question_text(request):
 
 @require_http_methods(["POST"])
 def update_answer_text(request):
-    data = json.loads(request.body)
-    answer_id = data.get("answer_id")
-    answer_text = data.get("answer_text")
     try:
+        data = json.loads(request.body)
+        answer_id = data.get("answer_id")
+        answer_text = data.get("answer_text")
         answer = Answer.objects.get(id=answer_id)
         answer.text = answer_text
         answer.save()
@@ -286,12 +286,12 @@ def update_answer_text(request):
 
 @require_http_methods(["POST"])
 def update_quiz_timelimit(request):
-    data = json.loads(request.body)
-    admin_id = data.get("admin_id")
-    timelimit_active = data.get("timelimit_active")
-    default_timelimit = data.get("default_timelimit")
-    logging.debug(f"update_quiz_timelimit: {data}")
     try:
+        data = json.loads(request.body)
+        admin_id = data.get("admin_id")
+        timelimit_active = data.get("timelimit_active")
+        default_timelimit = data.get("default_timelimit")
+        logging.debug(f"update_quiz_timelimit: {data}")
         quiz = Quiz.objects.get(admin_id=admin_id)
         if timelimit_active is not None:
             quiz.timelimit_active = timelimit_active
@@ -305,11 +305,11 @@ def update_quiz_timelimit(request):
 
 @require_http_methods(["POST"])
 def update_question_timelimit(request):
-    data = json.loads(request.body)
-    question_id = data.get("question_id")
-    timelimit = data.get("timelimit")
-    logging.debug(f"update_question_timelimit: {data}")
     try:
+        data = json.loads(request.body)
+        question_id = data.get("question_id")
+        timelimit = data.get("timelimit")
+        logging.debug(f"update_question_timelimit: {data}")
         question = Question.objects.get(id=question_id)
         question.timelimit = timelimit
         question.save()
@@ -386,10 +386,10 @@ def advance_guided_question(request):
         if quiz.guided_current_question is None:
             return JsonResponse({"status": "error", "message": "No active guided session"}, status=400)
 
+        channel_layer = get_channel_layer()
         if quiz.guided_current_question < total - 1:
             quiz.guided_current_question += 1
             quiz.save()
-            channel_layer = get_channel_layer()
             async_to_sync(channel_layer.group_send)(
                 f"guided_{quiz.public_id}",
                 {"type": "guided_event", "data": {"action": "advance", "question_index": quiz.guided_current_question}}
@@ -398,7 +398,6 @@ def advance_guided_question(request):
         else:
             quiz.guided_current_question = None
             quiz.save()
-            channel_layer = get_channel_layer()
             async_to_sync(channel_layer.group_send)(
                 f"guided_{quiz.public_id}",
                 {"type": "guided_event", "data": {"action": "end"}}
