@@ -52,3 +52,6 @@ class UserAnswer(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     selected_answer = models.ForeignKey(Answer, null=True, blank=True, on_delete=models.SET_NULL)
     answered_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = [('attempt', 'question')]
