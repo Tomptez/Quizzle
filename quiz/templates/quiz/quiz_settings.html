@@ -85,16 +85,16 @@
       
       const maxOptions = 6;
 
-      async function apiCall({url, body, parseResponse = false}) {
+      async function apiCall({url, body, method = 'POST', parseResponse = false}) {
         let csrf_token = "{{ csrf_token }}"
         try {
           const response = await fetch(url, {
-            method: "POST",
+            method: method,
             headers: {
               'Content-Type': 'application/json',
               "X-CSRFToken": csrf_token,
             },
-            body: JSON.stringify(body),
+            body: body !== undefined ? JSON.stringify(body) : undefined,
             parseResponse: true
           });
           if (parseResponse) {
@@ -142,10 +142,10 @@
             question.text = element.value;
 
             apiCall({
-                url: "/quiz/api/update-question-text",
+                url: `/quiz/api/questions/${element.dataset.questionId}`,
+                method: 'PATCH',
                 body: {
-                    question_id: element.dataset.questionId,
-                    question_text: element.value
+                    text: element.value
                 }
             }).then(success => {
                 if (!success) {
@@ -239,11 +239,8 @@
         
         try {
           const success = await apiCall({
-            url: "/quiz/api/delete-question",
-            body: {
-              question_id: questionId,
-              admin_id: window.location.pathname.split("/").filter(Boolean).pop(),
-            }
+            url: `/quiz/api/questions/${questionId}`,
+            method: 'DELETE',
           });
           
           if (success) {
@@ -344,9 +341,9 @@
         let question = data.questions.find(q => q.id == question_id);
         question.timelimit = parseInt(input.value);
         apiCall({
-          url: "/quiz/api/update-question-time-limit",
+          url: `/quiz/api/questions/${question_id}`,
+          method: 'PATCH',
           body: {
-            question_id: question_id,
             timelimit: parseInt(input.value)
           }
         }).then(success => {
@@ -483,7 +480,7 @@
     async function addNewQuestion() {
       try {
         const response = await apiCall({
-          url: "/quiz/api/add-question",
+          url: "/quiz/api/questions",
           body: {
             admin_id: window.location.pathname.split("/").filter(Boolean).pop(),
           },

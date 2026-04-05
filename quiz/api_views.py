@@ -3,13 +3,47 @@ import logging
 
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
-from django.db import models
+from django.db.models import F
 from django.views.decorators.http import require_http_methods
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from rest_framework import viewsets, mixins, status
+from rest_framework.response import Response
 
 from .models import Quiz, Answer, Question, QuizAttempt, UserAnswer
 from .serializers import QuestionSerializer
+
+
+class QuestionViewSet(mixins.CreateModelMixin,
+                      mixins.UpdateModelMixin,
+                      mixins.DestroyModelMixin,
+                      viewsets.GenericViewSet
+                      ):
+    
+    queryset = Question.objects.all()
+    serializer_class = QuestionSerializer
+    
+    # Don't allow PUT, only PATCH + GET not needed -> questions are only retrieved through QuizSerializer.
+    http_method_names = ["post", "patch", "delete"]
+
+    def create(self, request):
+        quiz = get_object_or_404(Quiz, admin_id=request.data.get("admin_id"))
+        question = Question(quiz=quiz)
+        question.save()
+        answer = Answer(question=question, correct=True)
+        answer.save()
+        return Response(
+            {"status": "success", "question": QuestionSerializer(question).data},
+            status=status.HTTP_201_CREATED,
+        )
+
+    def perform_destroy(self, instance):
+        quiz = instance.quiz
+        deleted_position = instance.position
+        instance.delete()
+        Question.objects.filter(quiz=quiz, position__gt=deleted_position).update(
+            position=F("position") - 1
+        )
 
 
 @require_http_methods(["POST"])
@@ -30,21 +64,6 @@ def save_participant_name(request):
 
 
 @require_http_methods(["POST"])
-def add_question(request):
-    try:
-        data = json.loads(request.body)
-        quiz = get_object_or_404(Quiz, admin_id=data.get("admin_id"))
-        question = Question(quiz=quiz)
-        question.save()
-        answer = Answer(question=question, correct=True)
-        answer.save()
-        return JsonResponse({"status": "success", "question": QuestionSerializer(question).data})
-    except Exception:
-        logging.exception("Failed to add question")
-        return JsonResponse({"status": "error"}, status=400)
-
-
-@require_http_methods(["POST"])
 def add_answer(request):
     try:
         data = json.loads(request.body)
@@ -59,23 +78,6 @@ def add_answer(request):
         return JsonResponse({"status": "success", "answer_id": answer.id})
     except Exception:
         logging.exception("Failed to add answer")
-        return JsonResponse({"status": "error"}, status=400)
-
-
-@require_http_methods(["POST"])
-def delete_question(request):
-    try:
-        data = json.loads(request.body)
-        question_id = data.get("question_id")
-        admin_id = data.get("admin_id")
-        quiz = Quiz.objects.get(admin_id=admin_id)
-        question = Question.objects.get(id=question_id, quiz=quiz)
-        deleted_position = question.position
-        question.delete()
-        Question.objects.filter(quiz=quiz, position__gt=deleted_position).update(position=models.F('position') - 1)
-        return JsonResponse({"status": "success"})
-    except Exception:
-        logging.exception("Failed to delete question")
         return JsonResponse({"status": "error"}, status=400)
 
 
@@ -149,21 +151,6 @@ def update_quiz_name(request):
 
 
 @require_http_methods(["POST"])
-def update_question_text(request):
-    try:
-        data = json.loads(request.body)
-        question_id = data.get("question_id")
-        question_text = data.get("question_text")
-        question = Question.objects.get(id=question_id)
-        question.text = question_text
-        question.save()
-        return JsonResponse({"status": "success"})
-    except Exception:
-        logging.exception("Failed to update question text")
-        return JsonResponse({"status": "error"}, status=400)
-
-
-@require_http_methods(["POST"])
 def update_answer_text(request):
     try:
         data = json.loads(request.body)
@@ -195,22 +182,6 @@ def update_quiz_timelimit(request):
         return JsonResponse({"status": "success"})
     except Exception:
         logging.exception("Failed to update quiz time limit")
-        return JsonResponse({"status": "error"}, status=400)
-
-
-@require_http_methods(["POST"])
-def update_question_timelimit(request):
-    try:
-        data = json.loads(request.body)
-        question_id = data.get("question_id")
-        timelimit = data.get("timelimit")
-        logging.debug(f"update_question_timelimit: {data}")
-        question = Question.objects.get(id=question_id)
-        question.timelimit = timelimit
-        question.save()
-        return JsonResponse({"status": "success"})
-    except Exception:
-        logging.exception("Failed to update question time limit")
         return JsonResponse({"status": "error"}, status=400)
 
 

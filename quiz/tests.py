@@ -84,12 +84,12 @@ class QuizViewTests(TestCase):
         }
         
         response = self.client.post(
-            reverse('add_question'),
+            reverse('api-questions-list'),
             data=json.dumps(data),
             content_type='application/json'
         )
         
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 201)
         self.assertTrue(Question.objects.filter(quiz__admin_id=self.quiz.admin_id).count() == question_count + 1)
     
     def test_add_answer(self):
@@ -112,18 +112,12 @@ class QuizViewTests(TestCase):
     # Deleting stuff
     def test_delete_question(self):
         """Test deleting a question"""
-        data = {
-            "question_id": self.question.id,
-            "admin_id": self.quiz.admin_id
-        }
-        
-        response = self.client.post(
-            reverse('delete_question'),
-            data=json.dumps(data),
+        response = self.client.delete(
+            reverse('api-questions-detail', args=[self.question.id]),
             content_type='application/json'
         )
         
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 204)
         self.assertFalse(Question.objects.filter(id=self.question.id).exists())
     
     def test_delete_answer(self):
@@ -160,12 +154,11 @@ class QuizViewTests(TestCase):
     def test_update_question_text(self):
         """Test updating question text"""
         data = {
-            "question_id": self.question.id,
-            "question_text": "New text?"
+            "text": "New text?"
         }
         
-        response = self.client.post(
-            reverse('update_question_text'),
+        response = self.client.patch(
+            reverse('api-questions-detail', args=[self.question.id]),
             data=json.dumps(data),
             content_type='application/json'
         )
@@ -269,12 +262,11 @@ class QuizViewTests(TestCase):
     def test_update_question_time_limit(self):
         """Test updating question time limit"""
         data = {
-            "question_id": self.question.id,
             "timelimit": 30
         }
         
-        response = self.client.post(
-            reverse('update_question_timelimit'),
+        response = self.client.patch(
+            reverse('api-questions-detail', args=[self.question.id]),
             data=json.dumps(data),
             content_type='application/json'
         )
@@ -377,17 +369,13 @@ class QuizViewTests(TestCase):
         
         # Endpoints without required arguments
         endpoints_no_args = [
-            'add_question',
             'add_answer',
-            'delete_question',
             'delete_answer',
             'swap_question_positions',
             'update_correct_answer',
             'update_quiz_name',
-            'update_question_text',
             'update_answer_text',
             'update_quiz_timelimit',
-            'update_question_timelimit',
             'save_answer',
             'save_participant_name',
             'new_quiz',
