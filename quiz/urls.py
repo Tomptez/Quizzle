@@ -1,5 +1,5 @@
 from django.urls import path, re_path
-from . import views
+from . import views, api_views
 from django.views.generic import RedirectView
 
 """
@@ -29,18 +29,18 @@ urlpatterns = [
     path('scoreboard/<str:public_id>/', views.scoreboard, name='scoreboard'),
     path('quiz/presenter/<str:admin_id>/', views.presenter_view, name='presenter_view'),
     path('quiz/admin/<str:admin_quizid>/', views.admin_quiz, name='admin_quiz'),
-    path('quiz/api/add-answer', views.add_answer, name='add_answer'),
-    path('quiz/api/delete-answer', views.delete_answer, name='delete_answer'),
-    path('quiz/api/add-question', views.add_question, name='add_question'),
-    path('quiz/api/delete-question', views.delete_question, name='delete_question'),
-    path('quiz/api/change-question-order', views.swap_question_positions, name='swap_question_positions'),
-    path('quiz/api/update-correct', views.update_correct_answer, name='update_correct_answer'),
-    path('quiz/api/update-quiz-name', views.update_quiz_name, name='update_quiz_name'),
-    path('quiz/api/update-question-text', views.update_question_text, name='update_question_text'),
-    path('quiz/api/update-answer-text', views.update_answer_text, name='update_answer_text'),
-    path('quiz/api/update-quiz-time-limit', views.update_quiz_timelimit, name='update_quiz_timelimit'),
-    path('quiz/api/update-question-time-limit', views.update_question_timelimit, name='update_question_timelimit'),
-    path('quiz/api/save-answer', views.save_answer, name='save_answer'),
-    path('quiz/api/save-participant-name', views.save_participant_name, name='save_participant_name'),
-    path('quiz/api/advance-guided-question', views.advance_guided_question, name='advance_guided_question'),
+    path('quiz/api/add-answer', api_views.add_answer, name='add_answer'),
+    path('quiz/api/delete-answer', api_views.delete_answer, name='delete_answer'),
+    path('quiz/api/add-question', api_views.add_question, name='add_question'),
+    path('quiz/api/delete-question', api_views.delete_question, name='delete_question'),
+    path('quiz/api/change-question-order', api_views.swap_question_positions, name='swap_question_positions'),
+    path('quiz/api/update-correct', api_views.update_correct_answer, name='update_correct_answer'),
+    path('quiz/api/update-quiz-name', api_views.update_quiz_name, name='update_quiz_name'),
+    path('quiz/api/update-question-text', api_views.update_question_text, name='update_question_text'),
+    path('quiz/api/update-answer-text', api_views.update_answer_text, name='update_answer_text'),
+    path('quiz/api/update-quiz-time-limit', api_views.update_quiz_timelimit, name='update_quiz_timelimit'),
+    path('quiz/api/update-question-time-limit', api_views.update_question_timelimit, name='update_question_timelimit'),
+    path('quiz/api/save-answer', api_views.save_answer, name='save_answer'),
+    path('quiz/api/save-participant-name', api_views.save_participant_name, name='save_participant_name'),
+    path('quiz/api/advance-guided-question', api_views.advance_guided_question, name='advance_guided_question'),
     ]
