@@ -107,12 +107,13 @@
         }
       }
 
-      let timeout = null;
+      let answerTimeout = null;
+
       function saveAnswer(element) {
-        clearTimeout(timeout);
+        clearTimeout(answerTimeout);
 
         // Do this if there is no button press within 1.5 seconds
-        timeout = setTimeout(() => {
+        answerTimeout = setTimeout(() => {
           console.log("Question-Id", element.dataset.questionId, "Answer-id", element.dataset.answerId, "Text:", element.value);
           let answer = data.questions.find(q => q.id == element.dataset.questionId).answers.find(a => a.id == element.dataset.answerId);
           answer.text = element.value;
@@ -132,11 +133,12 @@
             });
         }, 750)
       }
+      let questionTimeout = null;
 
       function saveQuestionText(element) {
-        clearTimeout(timeout);
+        clearTimeout(questionTimeout);
 
-        timeout = setTimeout(() => {
+        questionTimeout = setTimeout(() => {
             console.log("Question-id", element.dataset.questionId, "Text:", element.value);
             let question = data.questions.find(q => q.id == element.dataset.questionId);
             question.text = element.value;
@@ -157,10 +159,12 @@
         }, 750)
       }
 
-      function saveQuizName(element) {
-        clearTimeout(timeout);
+      let quizNameTimeout = null;
 
-        timeout = setTimeout(() => {
+      function saveQuizName(element) {
+        clearTimeout(quizNameTimeout);
+
+        quizNameTimeout = setTimeout(() => {
             data.name = element.value;
 
             let admin_id = window.location.pathname.split("/").filter(Boolean).pop();
@@ -220,7 +224,7 @@
       function getAnswer(answerId, questionId, answerText="", answerCorrect=false, placeholder="") {
         placeholder = placeholder != "" ? placeholder : `placeholder="Option ${answerId}"`;
         let checkedMark = answerCorrect ? "checked" : "";
-        let textValue = answerText === "" ? "" : `value="${answerText}"`;
+        let textValue = answerText === "" ? "" : `value="${escapeHtml(answerText)}"`;
 
             return `<div class="d-flex align-items-center my-3 input-row">
             <input type="checkbox" class="form-check-input form-check-correct rounded-circle mx-2 answer-option  ms-0" onchange="saveCorrectInput(this);" value="" ${checkedMark} data-answer-id=${answerId} data-quiz-id=${data.public_id} data-question-id=${questionId}>
@@ -283,7 +287,10 @@
         element.parentElement.remove();
 
         if (wasCorrect){
-          saveCorrectInput(document.querySelector("input[type='checkbox'].answer-option"));
+          let firstAnswerCheckbox = element.parentElement.parentElement.querySelector("input[type='checkbox'].answer-option");
+          if (firstAnswerCheckbox){
+            saveCorrectInput(firstAnswerCheckbox);
+          }
         }
 
         question.answers = question.answers.filter(a => a.id != answerId);
@@ -373,7 +380,7 @@
         return `
         <div class="question-wrapper my-3" data-question-id=${question.id}>
           <label for="formQuestionText" class="form-label fw-semibold">Question:</label>
-          <input class="form-control rounded-3" data-question-id=${question.id} id="formQuestionText" oninput="saveQuestionText(this);" value="${questionText}">
+          <input class="form-control rounded-3" data-question-id=${question.id} id="formQuestionText" oninput="saveQuestionText(this);" value="${escapeHtml(questionText)}">
           <div class="d-flex align-items-center gap-3 mt-2 flex-row-reverse" >
             <div class="input-group input-group-sm" style="width: 120px;">
             <input type="number" class="form-control form-control-sm question-timelimit" id="seconds" name="seconds" min="0" max="360" value="${question.timelimit !== null ? question.timelimit : data.default_timelimit}" data-question-id=${question.id} onchange="changeQuestionTimeLimit(this);" oninput="changeQuestionTimeLimit(this);" ${data.timelimit_active ? "" : 'style="display: none;"'}>  
@@ -570,6 +577,15 @@
             console.log("Couldn't create new Answer. Server error")
           }
       })
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
     }
     
     // Setup Page
