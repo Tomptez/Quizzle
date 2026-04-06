@@ -8,6 +8,7 @@ from django.views.decorators.http import require_http_methods
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from rest_framework import viewsets, mixins, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .models import Quiz, Answer, Question, QuizAttempt, UserAnswer
@@ -45,6 +46,30 @@ class QuestionViewSet(mixins.CreateModelMixin,
             position=F("position") - 1
         )
 
+    @action(detail=False, methods=["post"], url_path="swap-positions")
+    def swap_positions(self, request):
+        try:
+            question_id_1 = request.data.get("question_id_1")
+            question_id_2 = request.data.get("question_id_2")
+            admin_id = request.data.get("admin_id")
+            quiz = Quiz.objects.get(admin_id=admin_id)
+            q1 = Question.objects.get(id=question_id_1, quiz=quiz)
+            q2 = Question.objects.get(id=question_id_2, quiz=quiz)
+
+            temp_pos = -1
+            q1_position = q1.position
+            q1.position = temp_pos
+            q1.save()
+
+            q2.position, q1.position = q1_position, q2.position
+            q2.save()
+            q1.save()
+
+            return Response({"status": "success"})
+        except Exception:
+            logging.exception("Failed to swap positions")
+            return Response({"status": "error"}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class AnswerViewSet(
     mixins.CreateModelMixin,
@@ -72,32 +97,6 @@ def save_participant_name(request):
     except Exception as e:
         logging.exception("Failed to save participant name")
         return JsonResponse({"status": "error", "message": str(e)}, status=400)
-
-
-@require_http_methods(["POST"])
-def swap_question_positions(request):
-    try:
-        data = json.loads(request.body)
-        question_id_1 = data.get("question_id_1")
-        question_id_2 = data.get("question_id_2")
-        admin_id = data.get("admin_id")
-        quiz = Quiz.objects.get(admin_id=admin_id)
-        q1 = Question.objects.get(id=question_id_1, quiz=quiz)
-        q2 = Question.objects.get(id=question_id_2, quiz=quiz)
-
-        temp_pos = -1
-        q1_position = q1.position
-        q1.position = temp_pos
-        q1.save()
-
-        q2.position, q1.position = q1_position, q2.position
-        q2.save()
-        q1.save()
-
-        return JsonResponse({"status": "success"})
-    except Exception:
-        logging.exception("Failed to swap positions")
-        return JsonResponse({"status": "error"}, status=400)
 
 
 @require_http_methods(["POST"])

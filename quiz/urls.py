@@ -18,7 +18,6 @@ urlpatterns = [
     path('scoreboard/<str:public_id>/', views.scoreboard, name='scoreboard'),
     path('quiz/presenter/<str:admin_id>/', views.presenter_view, name='presenter_view'),
     path('quiz/admin/<str:admin_quizid>/', views.admin_quiz, name='admin_quiz'),
-    path('quiz/api/change-question-order', api_views.swap_question_positions, name='swap_question_positions'),
     path('quiz/api/update-quiz-name', api_views.update_quiz_name, name='update_quiz_name'),
     path('quiz/api/update-quiz-time-limit', api_views.update_quiz_timelimit, name='update_quiz_timelimit'),
     path('quiz/api/save-answer', api_views.save_answer, name='save_answer'),

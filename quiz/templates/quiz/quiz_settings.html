@@ -405,7 +405,7 @@
         
         try {
           const success = await apiCall({
-            url: "/quiz/api/change-question-order",
+            url: "/quiz/api/questions/swap-positions",
             body: {
               question_id_1: q1.id,
               question_id_2: q2.id,

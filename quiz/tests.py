@@ -209,7 +209,7 @@ class QuizViewTests(TestCase):
         }
         
         response = self.client.post(
-            reverse('swap_question_positions'),
+            reverse('api-questions-swap-positions'),
             data=json.dumps(data),
             content_type='application/json'
         )
@@ -365,7 +365,6 @@ class QuizViewTests(TestCase):
         
         # Endpoints without required arguments
         endpoints_no_args = [
-            'swap_question_positions',
             'update_quiz_name',
             'update_quiz_timelimit',
             'save_answer',
