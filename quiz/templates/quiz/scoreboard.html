@@ -1,4 +1,4 @@
-{% extends 'quiz/layout.html' %}
+{% extends "quiz/quiz_base.html" %}
 {% load static %}
 
 {% block head %}
@@ -8,7 +8,7 @@
 
 {% block content %}
 <div class="container">
-    <div class="header">
+    <div class="scoreboard-header">
         <h1 id="title-scoreboard">{{ quiz.name }}</h1>
     </div>
     
