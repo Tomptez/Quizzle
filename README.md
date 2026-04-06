@@ -21,6 +21,10 @@ Beyond the final project, the longterm goal is to host the app and offer a simpl
 - Choose a nice open source license :)
 
 
+## Setup environment variables
+
+Copy `example.env` to `.env` and change values
+
 ## Run with Docker (not for production)
 
 ```bash

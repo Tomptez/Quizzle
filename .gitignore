@@ -10,4 +10,7 @@ wheels/
 .venv
 venv
 
+# Environment variables
+.env
+
 *.sqlite3

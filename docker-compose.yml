@@ -2,13 +2,13 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: quiz
-      POSTGRES_USER: quiz
-      POSTGRES_PASSWORD: quiz_password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U quiz"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 5s
       retries: 5
 
@@ -27,13 +27,13 @@ services:
       sh -c "uv run manage.py migrate --no-input &&
              exec uv run daphne -b 0.0.0.0 -p 8000 config.asgi:application"
     environment:
-      POSTGRES_DB: quiz
-      POSTGRES_USER: quiz
-      POSTGRES_PASSWORD: quiz_password
-      POSTGRES_HOST: db
-      POSTGRES_PORT: "5432"
-      REDIS_HOST: redis
-      SECRET_KEY: "change-me-in-production"
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      REDIS_HOST: ${REDIS_HOST}
+      SECRET_KEY: ${SECRET_KEY}
       DEBUG: "False"
       ALLOWED_HOSTS: "localhost,127.0.0.1"
     ports:
