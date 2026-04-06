@@ -95,18 +95,18 @@ class QuizViewTests(TestCase):
     def test_add_answer(self):
         """Test adding an answer"""
         data = {
-            "question_id": self.question.id,
+            "question": self.question.id,
             "text": "6",
             "correct": False
         }
         
         response = self.client.post(
-            reverse('add_answer'),
+            reverse('api-answers-list'),
             data=json.dumps(data),
             content_type='application/json'
         )
         
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 201)
         self.assertTrue(Answer.objects.filter(text="6").exists())
     
     # Deleting stuff
@@ -122,15 +122,12 @@ class QuizViewTests(TestCase):
     
     def test_delete_answer(self):
         """Test deleting an answer"""
-        data = {"answer_id": self.answer2.id}
-        
-        response = self.client.post(
-            reverse('delete_answer'),
-            data=json.dumps(data),
+        response = self.client.delete(
+            reverse('api-answers-detail', args=[self.answer2.id]),
             content_type='application/json'
         )
         
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 204)
         self.assertFalse(Answer.objects.filter(id=self.answer2.id).exists())
     
     # Updating stuff through the API
@@ -170,12 +167,11 @@ class QuizViewTests(TestCase):
     def test_update_answer_text(self):
         """Test updating answer text"""
         data = {
-            "answer_id": self.answer1.id,
-            "answer_text": "New answer"
+            "text": "New answer"
         }
         
-        response = self.client.post(
-            reverse('update_answer_text'),
+        response = self.client.patch(
+            reverse('api-answers-detail', args=[self.answer1.id]),
             data=json.dumps(data),
             content_type='application/json'
         )
@@ -186,10 +182,10 @@ class QuizViewTests(TestCase):
     
     def test_update_correct_answer(self):
         """Test changing which answer is correct"""
-        data = {"answer_id": self.answer2.id}
+        data = {"correct": True}
         
-        response = self.client.post(
-            reverse('update_correct_answer'),
+        response = self.client.patch(
+            reverse('api-answers-detail', args=[self.answer2.id]),
             data=json.dumps(data),
             content_type='application/json'
         )
@@ -369,12 +365,8 @@ class QuizViewTests(TestCase):
         
         # Endpoints without required arguments
         endpoints_no_args = [
-            'add_answer',
-            'delete_answer',
             'swap_question_positions',
-            'update_correct_answer',
             'update_quiz_name',
-            'update_answer_text',
             'update_quiz_timelimit',
             'save_answer',
             'save_participant_name',

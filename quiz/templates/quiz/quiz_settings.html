@@ -118,10 +118,10 @@
           answer.text = element.value;
 
             apiCall({
-                url: "/quiz/api/update-answer-text",
+                url: `/quiz/api/answers/${element.dataset.answerId}`,
+                method: 'PATCH',
                 body: {
-                    answer_id: element.dataset.answerId,
-                    answer_text: element.value
+                    text: element.value
                 }
             }).then(success => {
                 if (!success) {
@@ -207,8 +207,9 @@
         correctOption.correct = true;
         console.log(checkbox.dataset.answerId, "was checked");
         apiCall({
-          url: "/quiz/api/update-correct",
-          body: {answer_id: checkbox.dataset.answerId}
+          url: `/quiz/api/answers/${checkbox.dataset.answerId}`,
+          method: 'PATCH',
+          body: {correct: true}
         }).then(success => {
           if (!success) {
             console.error("Failed to update correct answer")
@@ -289,8 +290,8 @@
         document.querySelector('#add-input').style.display = '';
 
         apiCall({
-          url: "/quiz/api/delete-answer",
-          body: {answer_id: answerId}
+          url: `/quiz/api/answers/${answerId}`,
+          method: 'DELETE',
         }).then(success => {
           if (!success) {
             console.error("Failed to delete answer")
@@ -525,9 +526,9 @@
         console.log(answer)
         try {
           const result = await apiCall({
-            url: "/quiz/api/add-answer",
+            url: "/quiz/api/answers",
             body: {
-              question_id: questionId,
+              question: questionId,
               text: answer.text,
               correct: answer.correct
             },
@@ -535,7 +536,7 @@
           });
           if (result) {
             console.log("success")
-            return result.answer_id
+            return result.id
           } else {
             console.error("fail")
             return -1

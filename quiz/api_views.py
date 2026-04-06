@@ -11,7 +11,7 @@ from rest_framework import viewsets, mixins, status
 from rest_framework.response import Response
 
 from .models import Quiz, Answer, Question, QuizAttempt, UserAnswer
-from .serializers import QuestionSerializer
+from .serializers import AnswerSerializer, QuestionSerializer
 
 
 class QuestionViewSet(mixins.CreateModelMixin,
@@ -46,6 +46,17 @@ class QuestionViewSet(mixins.CreateModelMixin,
         )
 
 
+class AnswerViewSet(
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    queryset = Answer.objects.all()
+    serializer_class = AnswerSerializer
+    http_method_names = ["post", "patch", "delete"]
+
+
 @require_http_methods(["POST"])
 def save_participant_name(request):
     try:
@@ -61,37 +72,6 @@ def save_participant_name(request):
     except Exception as e:
         logging.exception("Failed to save participant name")
         return JsonResponse({"status": "error", "message": str(e)}, status=400)
-
-
-@require_http_methods(["POST"])
-def add_answer(request):
-    try:
-        data = json.loads(request.body)
-        question_id = data.get("question_id")
-        text = data.get("text")
-        correct = data.get("correct")
-        question = Question.objects.get(id=question_id)
-        if correct:
-            Answer.objects.filter(question=question).update(correct=False)
-        answer = Answer(question=question, text=text, correct=correct)
-        answer.save()
-        return JsonResponse({"status": "success", "answer_id": answer.id})
-    except Exception:
-        logging.exception("Failed to add answer")
-        return JsonResponse({"status": "error"}, status=400)
-
-
-@require_http_methods(["POST"])
-def delete_answer(request):
-    try:
-        data = json.loads(request.body)
-        answer_id = data.get("answer_id")
-        answer = Answer.objects.get(id=answer_id)
-        answer.delete()
-        return JsonResponse({"status": "success"})
-    except Exception:
-        logging.exception("Failed to delete answer")
-        return JsonResponse({"status": "error"}, status=400)
 
 
 @require_http_methods(["POST"])
@@ -121,21 +101,6 @@ def swap_question_positions(request):
 
 
 @require_http_methods(["POST"])
-def update_correct_answer(request):
-    try:
-        data = json.loads(request.body)
-        answer_id = data.get("answer_id")
-        answer = Answer.objects.get(id=answer_id)
-        Answer.objects.filter(question=answer.question).update(correct=False)
-        answer.correct = True
-        answer.save()
-        return JsonResponse({"status": "success"})
-    except Exception:
-        logging.exception("Failed to update correct answer")
-        return JsonResponse({"status": "error"}, status=400)
-
-
-@require_http_methods(["POST"])
 def update_quiz_name(request):
     try:
         data = json.loads(request.body)
@@ -147,21 +112,6 @@ def update_quiz_name(request):
         return JsonResponse({"status": "success"})
     except Exception:
         logging.exception("Failed to update quiz name")
-        return JsonResponse({"status": "error"}, status=400)
-
-
-@require_http_methods(["POST"])
-def update_answer_text(request):
-    try:
-        data = json.loads(request.body)
-        answer_id = data.get("answer_id")
-        answer_text = data.get("answer_text")
-        answer = Answer.objects.get(id=answer_id)
-        answer.text = answer_text
-        answer.save()
-        return JsonResponse({"status": "success"})
-    except Exception:
-        logging.exception("Failed to update answer text")
         return JsonResponse({"status": "error"}, status=400)
 
 

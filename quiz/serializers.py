@@ -8,6 +8,11 @@ class AnswerSerializer(serializers.ModelSerializer):
         model = Answer
         fields = "__all__"
 
+    def create(self, validated_data):
+        if validated_data.get('correct'):
+            Answer.objects.filter(question=validated_data['question']).update(correct=False)
+        return super().create(validated_data)
+
     def update(self, instance, validated_data):
         if validated_data.get('correct'):
             Answer.objects.filter(question=instance.question).update(correct=False)

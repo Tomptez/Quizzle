@@ -6,6 +6,7 @@ from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter(trailing_slash=False)
 router.register("questions", api_views.QuestionViewSet, basename="api-questions")
+router.register("answers", api_views.AnswerViewSet, basename="api-answers")
 
 urlpatterns = [
     re_path(r'^(.*)favicon\.ico$', RedirectView.as_view(url='/static/favicon.ico')),
@@ -17,12 +18,8 @@ urlpatterns = [
     path('scoreboard/<str:public_id>/', views.scoreboard, name='scoreboard'),
     path('quiz/presenter/<str:admin_id>/', views.presenter_view, name='presenter_view'),
     path('quiz/admin/<str:admin_quizid>/', views.admin_quiz, name='admin_quiz'),
-    path('quiz/api/add-answer', api_views.add_answer, name='add_answer'),
-    path('quiz/api/delete-answer', api_views.delete_answer, name='delete_answer'),
     path('quiz/api/change-question-order', api_views.swap_question_positions, name='swap_question_positions'),
-    path('quiz/api/update-correct', api_views.update_correct_answer, name='update_correct_answer'),
     path('quiz/api/update-quiz-name', api_views.update_quiz_name, name='update_quiz_name'),
-    path('quiz/api/update-answer-text', api_views.update_answer_text, name='update_answer_text'),
     path('quiz/api/update-quiz-time-limit', api_views.update_quiz_timelimit, name='update_quiz_timelimit'),
     path('quiz/api/save-answer', api_views.save_answer, name='save_answer'),
     path('quiz/api/save-participant-name', api_views.save_participant_name, name='save_participant_name'),
