@@ -10,10 +10,10 @@ Beyond the final project, the longterm goal is to host the app and offer a simpl
 
 - Better UI experience
 - Better access control to quizzes
-- Add QR code for interactive quizzes 
+-  [x] ~~Add QR code for interactive quizzes~~
 - Allow to calculate scores based on speed
 - Allow embedding images
-- Make sure timelimits work correctly, separate logic from guided quizzes better
+- Better control over timelimits and guided quizzes
 
 ### Longterm Todos:
 

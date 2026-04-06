@@ -72,3 +72,7 @@ body {
 .modal-content input {
     margin-bottom: 1rem;
 }
+
+.fs-extra-big {
+  font-size: 5rem;
+}

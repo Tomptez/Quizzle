@@ -1,14 +1,15 @@
 {% extends "quiz/quiz_base.html" %}
 {% block head %}
   <title>Presenter view - {{ quiz.name }}</title>
+  <script src="https://unpkg.com/qr-code-styling@1.9.2/lib/qr-code-styling.js"></script>
 {% endblock %}
 
 {% block content %}
 
 <div class="container-fluid py-3">
-  <div class="g-4 row justify-content-center my-4">
+  <div class="g-4 row justify-content-center">
 
-    <div class="col-6">
+    <div class="col-5">
       <div class="quiz-container">
         <div id="statusBanner" class="alert alert-info mb-3">Waiting to start — click <strong>Start Quiz</strong> to show the first question.
         </div>
@@ -33,9 +34,8 @@
         </div>
       </div>
     </div>
-</div>
-  <div class="g-4 row justify-content-center my-4">
-    <div class="col-6">
+
+    <div class="col-7">
       <div class="card shadow-sm presenter-sidebar">
         <div class="card-header bg-primary text-white">
           <h5 class="mb-0">Session</h5>
@@ -45,9 +45,11 @@
           <div id="joinUrlContainer" class="d-flex align-items-center justify-content-center mb-3 fs-2">
           </div>
 
-          <div class="border rounded p-2 bg-light mb-3">
+          <div id="qrCode"></div>
+
+          <div class="border rounded p-2 bg-light mb-1">
             <p class="mb-1 small text-muted">Session code</p>
-            <h4 class="mb-0 fw-bold fs-1" id="sessionCode">{{ public_id }}</h4>
+            <h4 class="mb-0 fw-bold fs-extra-big" id="sessionCode">{{ public_id }}</h4>
           </div>
         </div>
       </div>
@@ -65,7 +67,19 @@
     const totalQuestions = quizData.questions.length;
 
     document.getElementById('quizName').textContent = quizData.name;
-    document.getElementById("joinUrlContainer").innerHTML = joinUrl;
+    document.getElementById("joinUrlContainer").textContent = joinUrl;
+
+    new QRCodeStyling({
+        width: 350,
+        height: 350,
+        type: "svg",
+        data: joinUrl,
+        dotsOptions: {
+            type: "rounded",
+        },
+        cornersSquareOptions: { type: "extra-rounded"},
+        backgroundOptions: { color: "transparent" }
+    }).append(document.getElementById("qrCode"));
 
      function renderQuestion() {
         const container = document.getElementById('questionsContainer');
