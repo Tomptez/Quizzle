@@ -45,12 +45,34 @@ class QuizViewTests(TestCase):
             text="What is 3+3?",
             position=2
         )
+        
         self.answer3 = Answer.objects.create(
             question=self.question2,
             text="6",
             position=1,
             correct=True
         )
+        
+        self.question3 = Question.objects.create(
+            quiz=self.quiz,
+            text="What is 4+4?",
+            position=3
+        )
+        
+        self.answer4 = Answer.objects.create(
+            question=self.question3,
+            text="7",
+            position=2
+        )
+        
+        self.answer5 = Answer.objects.create(
+            question=self.question3,
+            text="8",
+            position=1,
+            correct=True
+        )
+        
+
     
     # Page Views
     def test_index_view(self):
@@ -219,7 +241,26 @@ class QuizViewTests(TestCase):
         self.question2.refresh_from_db()
         self.assertEqual(self.question.position, pos2)
         self.assertEqual(self.question2.position, pos1)
-    
+        
+    def test_delete_question_reorders_positions(self):
+        """Test that deleting a question correctly reorders questions"""
+        self.client.delete(
+            reverse('api-questions-detail', args=[self.question2.id]),
+            content_type='application/json'
+        )
+
+        self.question.refresh_from_db()
+        self.question3.refresh_from_db()
+        self.assertEqual(self.question.position, 1)
+        self.assertEqual(self.question3.position, 2)
+
+    def test_question_auto_position(self):
+        """Test that new questions get correct position"""
+        q_new = Question(quiz=self.quiz)
+        q_new.save()
+
+        self.assertEqual(q_new.position, 4)
+
     # Time Limits
     def test_update_quiz_time_limit_active(self):
         """Test toggling quiz time limit active state"""
@@ -301,6 +342,28 @@ class QuizViewTests(TestCase):
         self.assertEqual(attempt.correct_count, 1)
         self.assertIsNotNone(attempt.completed_at)
     
+    def test_quiz_score_calculation(self):
+        """Test calculating the correct quiz score"""
+        attempt = QuizAttempt.objects.create(quiz=self.quiz, participant_id="scorer")
+
+        response = self.client.post(
+            reverse('submit_quiz', args=[self.quiz.public_id]),
+            data=json.dumps({
+                "attempt_id": attempt.id,
+                "answers": [
+                    {"question_id": self.question.id, "answer_id": self.answer1.id},
+                    {"question_id": self.question2.id, "answer_id": self.answer3.id},
+                    {"question_id": self.question3.id, "answer_id": self.answer4.id},
+                ]
+            }),
+            content_type='application/json'
+        )
+
+        self.assertEqual(response.status_code, 200)
+        attempt.refresh_from_db()
+        self.assertEqual(attempt.correct_count, 2)
+        self.assertIsNotNone(attempt.completed_at)
+
     def test_quiz_results_view(self):
         """Test quiz results page displays correctly"""
         attempt = QuizAttempt.objects.create(
@@ -315,7 +378,7 @@ class QuizViewTests(TestCase):
         
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['correct_count'], 1)
-        self.assertEqual(response.context['total'], 2)
+        self.assertEqual(response.context['total'], 3)
     
     def test_save_answer(self):
         """Test saving a single answer during quiz"""
@@ -434,7 +497,7 @@ class QuizViewTests(TestCase):
         self.assertEqual(len(response.context['attempts']), 1)
         self.assertEqual(response.context['attempts'][0].quizzer_name, "Alice")
         self.assertEqual(response.context['attempts'][0].correct_count, 2)
-        self.assertEqual(response.context['total_questions'], 2)
+        self.assertEqual(response.context['total_questions'], 3)
 
     def test_presenter_view(self):
         """Test presenter view returns 200 and correct context"""
@@ -444,3 +507,37 @@ class QuizViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['admin_id'], self.quiz.admin_id)
         self.assertEqual(response.context['public_id'], self.quiz.public_id)
+
+    def test_advance_guided_question(self):
+        """Test advancing to the next question"""
+        self.quiz.guided_current_question = 0
+        self.quiz.save()
+
+        response = self.client.post(
+            reverse('advance_guided_question'),
+            data=json.dumps({"admin_id": self.quiz.admin_id}),
+            content_type='application/json'
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['question_index'], 1)
+        self.quiz.refresh_from_db()
+        self.assertEqual(self.quiz.guided_current_question, 1)
+
+    def test_advance_guided_question_ends_session(self):
+        """Test ending the session"""
+        self.quiz.guided_current_question = self.quiz.questions.count() - 1
+        self.quiz.save()
+
+        response = self.client.post(
+            reverse('advance_guided_question'),
+            data=json.dumps({"admin_id": self.quiz.admin_id}),
+            content_type='application/json'
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['status'], 'ended')
+        self.quiz.refresh_from_db()
+        self.assertIsNone(self.quiz.guided_current_question)
