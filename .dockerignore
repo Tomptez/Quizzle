@@ -1,0 +1,25 @@
+# Version control
+.git
+.gitignore
+
+# Virtual environments
+.venv
+venv
+
+# Environment files
+.env
+example.env
+
+# Database
+*.sqlite3
+
+# Python cache
+__pycache__
+*.py[oc]
+
+# Docker files (not needed inside image)
+Dockerfile
+docker-compose.yml
+
+# Docs
+README.md

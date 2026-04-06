@@ -1,6 +1,8 @@
 services:
   db:
+    container_name: quiz-postgres-db
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -13,7 +15,9 @@ services:
       retries: 5
 
   redis:
+    container_name: quiz-redis
     image: redis:7-alpine
+    restart: unless-stopped
     volumes:
       - redis_data:/data
     healthcheck:
@@ -22,7 +26,9 @@ services:
       retries: 5
 
   web:
+    container_name: quiz-django-web
     build: .
+    restart: unless-stopped
     command: >
       sh -c "uv run manage.py migrate --no-input &&
              exec uv run daphne -b 0.0.0.0 -p 8000 config.asgi:application"
@@ -34,8 +40,8 @@ services:
       POSTGRES_PORT: ${POSTGRES_PORT}
       REDIS_HOST: ${REDIS_HOST}
       SECRET_KEY: ${SECRET_KEY}
-      DEBUG: "False"
-      ALLOWED_HOSTS: "localhost,127.0.0.1"
+      DEBUG: ${DEBUG}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
     ports:
       - "8000:8000"
     depends_on:
