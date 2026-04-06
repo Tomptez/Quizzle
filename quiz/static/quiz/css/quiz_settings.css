@@ -1,4 +1,12 @@
 
+:root {
+  --primary: #4a90d9;
+  --primary-hover: #3b7dd8;
+  --danger: #dc3545;
+  --light-blue: #e8f0fe;
+  --light-danger: #f8d7da;
+}
+
 .circle-btn {
   width: 30px;
   height: 30px;
@@ -19,12 +27,7 @@
 .circle-btn:hover {
   border: 2px solid transparent;
   background-color: rgb(146, 206, 255);
-  transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.circle-btn:active {
-  transform: translateY(0);
 }
 
 .circle-btn i {
@@ -40,30 +43,47 @@
 
 .dash-btn:hover {
   background-color: rgb(220, 80, 80);
-  transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.dash-btn:active {
-  transform: translateY(0);
+.circle-btn-sm {
+  width: 32px;
+  height: 28px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 12px;
+  border: 1.5px solid var(--primary);
+  color: var(--primary);
+  background-color: white;
+  transition: all 0.2s ease;
 }
 
-.circle-btn-sm {
-  width: 25px;
-  height: 25px;
-  font-size: 12pt;
-  font-weight: bold;
-  transition: all 0.3s ease;
+.circle-btn-sm:hover,
+#add-page:hover {
+  background-color: var(--light-blue);
+  border-color: var(--primary-hover);
+  color: var(--primary-hover);
+  box-shadow: 0 2px 6px rgba(74, 144, 217, 0.2);
+}
+
+.pg-btn-container {
+  align-items: center;
 }
 
 .marked {
-  background-color: rgb(94, 247, 191);
-  border: 0px;
-  width: 18px;
+  width: 22px;
+  height: 22px;
+  font-size: 0.7rem;
+  border-radius: 6px;
+  border: 1px solid #6c757d;
+  background-color: #f8f9fa;
+  color: #495057;
 }
 
-.navbar {
-  height: 30px;
+.marked:hover {
+  background-color: #e2e6ea;
+  border-color: #495057;
+  color: #212529;
 }
 
 .page-bar {
@@ -76,12 +96,16 @@
   border-top: 2px solid #e0e0e0;
 }
 
-.circle-btn.active {
-  background-color: rgb(85, 184, 255);
+.circle-btn.active,
+.circle-btn.active:hover {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: white;
 }
 
 .circle-btn.active:hover {
-  background-color: rgb(255, 255, 255);
+  background-color: var(--primary-hover);
+  border-color: var(--primary-hover);
 }
 
 .form-check-correct {
@@ -97,6 +121,27 @@ height: 30px;
 #right .card {
   position: sticky;
   top: 20px;
+}
+
+#add-page {
+  border: 1.5px solid var(--primary);
+  background-color: white;
+  color: var(--primary);
+}
+
+#delete-question {
+  border: 1.5px solid var(--danger);
+  background-color: white;
+  color: var(--danger);
+  border-radius: 12px;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.75rem;
+}
+
+#delete-question:hover {
+  background-color: var(--light-danger);
+  border-color: #c82333;
+  color: #c82333;
 }
 
 #timeLimitContainer {

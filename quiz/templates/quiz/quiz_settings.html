@@ -14,7 +14,7 @@
       <h2 id="h2-quiz-name"></h2>
       <i> Your Quizname</i>
     <div class="page-bar d-flex">
-      <button id="add-page" class="circle-btn circle-btn-sm mx-1" style="background-color: rgb(255, 188, 73);">
+      <button id="add-page" class="circle-btn circle-btn-sm mx-1">
         <i class="bi bi-plus"></i>
       </button>
       <button id="delete-question" class="btn rounded-pill btn-warning pill-button" onclick="deleteQuestion(this)">Delete Question</button>
@@ -35,27 +35,24 @@
             <label for="quiznameInput" class="form-label fw-semibold">Quiz name</label>
             <input type="text" class="form-control form-control-lg rounded-3" id="quiznameInput" data-quiz-id=${data.public_id} oninput="saveQuizName(this);" value="hi" placeholder="Enter quiz name">
           </div>
-          <div class="border-top pt-4 pb-4">
-            <h6 class="mb-3 fw-semibold">Scoreboard</h6>
-            <a href="{% url 'scoreboard' public_id %}" class="btn btn-sm btn-info">View Scoreboard</a>
-          </div>
 
-          <div class="border-top pt-4 pb-4">
-            <h6 class="mb-3 fw-semibold">Guided Quiz</h6>
-            <p class="text-muted small mb-2">Present this quiz live</p>
-            <button class="btn btn-sm btn-success" onclick="startGuidedQuiz()">
-              Start Guided Quiz
-            </button>
-          </div>
-
-          <div class="border-top pt-4 pb-4">
-            <h6 class="mb-3 fw-semibold">Public Quiz Link</h6>
+          <div class="border-top py-3">
+            <h6 class="mb-3 fw-semibold">Public Quiz</h6>
             <div class="d-flex align-items-center gap-2">
               <input type="text" class="form-control form-control-sm" id="publicQuizId" readonly>
               <button class="btn btn-sm btn-outline-primary" onclick="copyPublicQuizLink()" title="Copy link to clipboard">
                 <i class="bi bi-clipboard"></i>
               </button>
             </div>
+            <p class="text-muted small mb-2 mt-3">Present this quiz live</p>
+            <button class="btn btn-sm btn-success" onclick="startGuidedQuiz()">
+              <i class="bi bi-broadcast"></i>  Start Guided Quiz
+            </button>
+          </div>
+
+          <div class="border-top py-3">
+            <h6 class="mb-3 fw-semibold">Scoreboard</h6>
+            <a href="{% url 'scoreboard' public_id %}" class="btn btn-sm btn-info">View Scoreboard</a>
           </div>
           
           <div class="border-top pt-4">
@@ -592,8 +589,8 @@
     setupNewPageButton();
     data.questions.forEach(q => {
       document.querySelector("#add-page").insertAdjacentHTML("beforebegin", getPageNumberButton(q));
-      quiznameInput.value = data.name;
     })
+    quiznameInput.value = data.name;
     openQuestionPage(document.querySelector(".page-btn"));
     document.getElementById("h2-quiz-name").innerText = data.name;
     document.getElementById("activateTimeLimit").checked = data.timelimit_active;
